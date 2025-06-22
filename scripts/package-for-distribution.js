@@ -1,261 +1,373 @@
 #!/usr/bin/env node
 
-const fs = require('fs-extra');
-const path = require('path');
-const archiver = require('archiver');
-const { execSync } = require('child_process');
+import fs from 'fs-extra';
+import archiver from 'archiver';
+import path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { fileURLToPath } from 'url';
 
-class DistributionPackager {
-  constructor() {
-    this.appName = 'Streall';
-    this.version = '1.0.0';
-    this.outputDir = path.join(process.cwd(), 'release');
+const execAsync = promisify(exec);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Get project root directory
+const projectRoot = path.resolve(__dirname, '..');
+
+// Configuration
+const config = {
+  appName: 'Streall',
+  version: '1.0.0',
+  platforms: ['win32', 'darwin', 'linux'],
+  outputDir: path.join(projectRoot, 'dist-packages'),
+  tempDir: path.join(projectRoot, 'temp-package'),
+  
+  // Source directories after build
+  sources: {
+    win32: path.join(projectRoot, 'dist-electron', 'win-unpacked'),
+    darwin: path.join(projectRoot, 'dist-electron', 'mac'),
+    linux: path.join(projectRoot, 'dist-electron', 'linux-unpacked')
+  },
+  
+  // Installer script
+  installerScript: path.join(__dirname, 'installer.js'),
+  
+  // Package info
+  description: 'Streall - Premium Desktop Streaming Experience',
+  website: 'https://streall.app',
+  
+  // File patterns to exclude from portable packages
+  excludePatterns: [
+    '*.log',
+    '*.tmp',
+    'crash*',
+    'debug.log'
+  ]
+};
+
+async function detectPlatform() {
+  const platform = process.platform;
+  console.log(`🔍 Detected platform: ${platform}`);
+  
+  switch (platform) {
+    case 'win32':
+      return 'win32';
+    case 'darwin':
+      return 'darwin';
+    case 'linux':
+      return 'linux';
+    default:
+      throw new Error(`Unsupported platform: ${platform}`);
   }
+}
 
-  async createZipFromDirectory(sourceDir, outputPath) {
-    return new Promise((resolve, reject) => {
-      const output = fs.createWriteStream(outputPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
+async function buildApplication() {
+  console.log('🔨 Building application...');
+  
+  try {
+    // Build web assets first
+    console.log('  📦 Building web assets...');
+    await execAsync('npm run build', { cwd: projectRoot });
+    
+    // Build electron app for current platform
+    const platform = await detectPlatform();
+    let buildCommand;
+    
+    switch (platform) {
+      case 'win32':
+        buildCommand = 'npx electron-builder --win';
+        break;
+      case 'darwin':
+        buildCommand = 'npx electron-builder --mac';
+        break;
+      case 'linux':
+        buildCommand = 'npx electron-builder --linux';
+        break;
+      default:
+        throw new Error(`Unsupported platform: ${platform}`);
+    }
+    
+    console.log(`  🖥️  Building desktop app for ${platform}...`);
+    await execAsync(buildCommand, { cwd: projectRoot });
+    
+    console.log('✅ Application build completed');
+  } catch (error) {
+    console.error('❌ Build failed:', error.message);
+    if (error.stdout) console.log('STDOUT:', error.stdout);
+    if (error.stderr) console.log('STDERR:', error.stderr);
+    throw error;
+  }
+}
 
-      output.on('close', () => {
-        console.log(`✅ Created ${path.basename(outputPath)} (${archive.pointer()} bytes)`);
-        resolve();
-      });
-
-      archive.on('error', reject);
-      archive.pipe(output);
-      archive.directory(sourceDir, false);
-      archive.finalize();
+async function createZipArchive(sourceDir, outputPath, platform) {
+  return new Promise((resolve, reject) => {
+    console.log(`  📦 Creating ZIP archive: ${path.basename(outputPath)}`);
+    
+    const output = fs.createWriteStream(outputPath);
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Best compression
     });
-  }
-
-  async buildApplication() {
-    console.log('🔨 Building application...');
     
-    try {
-      // Build the web version first
-      execSync('npm run build', { stdio: 'inherit' });
-      
-      // Build the desktop version (ignore signing errors for now)
-      try {
-        execSync('npm run dist-win', { stdio: 'inherit' });
-      } catch (error) {
-        console.log('⚠️ Build completed with signing warnings (this is expected)');
+    let totalFiles = 0;
+    let processedFiles = 0;
+    
+    output.on('close', () => {
+      const sizeMB = (archive.pointer() / 1024 / 1024).toFixed(2);
+      console.log(`     ✅ Archive created: ${sizeMB}MB (${totalFiles} files)`);
+      resolve();
+    });
+    
+    archive.on('error', (err) => {
+      console.error('     ❌ Archive error:', err);
+      reject(err);
+    });
+    
+    archive.on('entry', () => {
+      processedFiles++;
+      if (processedFiles % 100 === 0) {
+        console.log(`     📄 Processed ${processedFiles}/${totalFiles} files...`);
       }
-      
-      console.log('✅ Application built successfully');
-    } catch (error) {
-      throw new Error(`❌ Build failed: ${error.message}`);
-    }
-  }
-
-  async createPortablePackages() {
-    console.log('📦 Creating portable packages...');
+    });
     
-    await fs.ensureDir(this.outputDir);
+    archive.pipe(output);
     
-    // Windows portable package
-    const winUnpackedDir = path.join(process.cwd(), 'dist-electron', 'win-unpacked');
-    if (fs.existsSync(winUnpackedDir)) {
-      const winZipPath = path.join(this.outputDir, `${this.appName}-Portable-Windows.zip`);
-      await this.createZipFromDirectory(winUnpackedDir, winZipPath);
-    }
-
-    // Note: macOS packages would be created here if building on macOS
-    // const macAppPath = path.join(process.cwd(), 'dist-electron', 'mac', `${this.appName}.app`);
-    // if (fs.existsSync(macAppPath)) {
-    //   const macZipPath = path.join(this.outputDir, `${this.appName}-Portable-macOS.zip`);
-    //   await this.createZipFromDirectory(macAppPath, macZipPath);
-    // }
-  }
-
-  async createInstallerPackages() {
-    console.log('🛠️ Creating installer packages...');
+    // Count total files first
+    const countFiles = (dir) => {
+      const items = fs.readdirSync(dir, { withFileTypes: true });
+      for (const item of items) {
+        if (item.isDirectory()) {
+          countFiles(path.join(dir, item.name));
+        } else {
+          totalFiles++;
+        }
+      }
+    };
     
-    const installerScript = path.join(process.cwd(), 'scripts', 'installer.js');
+    countFiles(sourceDir);
+    console.log(`     📊 Total files to archive: ${totalFiles}`);
+    
+    // Add all files to archive
+    archive.directory(sourceDir, false);
+    archive.finalize();
+  });
+}
+
+async function createInstallerPackage(portableZipPath, outputPath, platform) {
+  console.log(`  🎁 Creating installer package: ${path.basename(outputPath)}`);
+  
+  const tempInstallerDir = path.join(config.tempDir, 'installer');
+  await fs.ensureDir(tempInstallerDir);
+  
+  try {
+    // Copy installer script
+    const installerDestPath = path.join(tempInstallerDir, 'installer.js');
+    await fs.copy(config.installerScript, installerDestPath);
+    
+    // Copy portable ZIP
+    const zipDestPath = path.join(tempInstallerDir, `${config.appName.toLowerCase()}-portable.zip`);
+    await fs.copy(portableZipPath, zipDestPath);
+    
+    // Create package.json for installer
+    const packageJsonPath = path.join(tempInstallerDir, 'package.json');
     const packageJson = {
-      name: `${this.appName.toLowerCase()}-installer`,
-      version: this.version,
-      description: `Lightweight installer for ${this.appName}`,
+      name: `${config.appName.toLowerCase()}-installer`,
+      version: config.version,
+      description: `${config.description} - Installer`,
       main: 'installer.js',
       bin: {
-        'install-streall': './installer.js'
+        [`${config.appName.toLowerCase()}-install`]: 'installer.js'
       },
+      files: [
+        'installer.js',
+        `${config.appName.toLowerCase()}-portable.zip`
+      ],
       dependencies: {
         'extract-zip': '^2.0.1',
         'create-desktop-shortcuts': '^1.11.0',
         'fs-extra': '^11.1.1'
       },
-      engines: {
-        node: '>=16.0.0'
-      }
+      preferGlobal: true,
+      os: [platform]
     };
-
-    // Windows installer package
-    const winInstallerDir = path.join(this.outputDir, 'windows-installer');
-    await fs.ensureDir(winInstallerDir);
     
-    // Copy installer script
-    await fs.copy(installerScript, path.join(winInstallerDir, 'installer.js'));
+    await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
     
-    // Copy Windows portable ZIP
-    const winZipSource = path.join(this.outputDir, `${this.appName}-Portable-Windows.zip`);
-    const winZipDest = path.join(winInstallerDir, `${this.appName}.zip`);
-    if (fs.existsSync(winZipSource)) {
-      await fs.copy(winZipSource, winZipDest);
-    }
-    
-    // Create package.json for the installer
-    await fs.writeJson(path.join(winInstallerDir, 'package.json'), packageJson, { spaces: 2 });
-    
-    // Create README for the installer
-    const installerReadme = `# ${this.appName} Installer
+    // Create README for installer
+    const readmePath = path.join(tempInstallerDir, 'README.md');
+    const readmeContent = `# ${config.appName} Installer
 
-## Quick Install
+## Installation
 
-1. Make sure you have Node.js installed (https://nodejs.org)
-2. Open terminal/command prompt in this folder
-3. Run: \`npm install\`
-4. Run: \`node installer.js\`
+\`\`\`bash
+npm install -g .
+${config.appName.toLowerCase()}-install
+\`\`\`
 
-The installer will:
-- Extract ${this.appName} to the appropriate location for your OS
-- Create desktop shortcuts
-- Add to Start Menu (Windows) or Applications folder (macOS)
+Or run directly:
+
+\`\`\`bash
+node installer.js
+\`\`\`
+
+## What this installer does:
+
+1. 📁 Extracts ${config.appName} to your system's Applications folder
+2. 🖥️ Creates desktop shortcut
+3. 📋 Adds Start Menu entry (Windows) or Applications entry (macOS/Linux)
+4. ✅ Sets up the application for easy access
 
 ## Manual Installation
 
-If you prefer, you can also extract \`${this.appName}.zip\` manually and run the executable directly.
+If you prefer to install manually:
+
+1. Extract the \`${config.appName.toLowerCase()}-portable.zip\` file
+2. Move the extracted folder to your preferred location
+3. Run the application executable
 
 ## System Requirements
 
-- Windows 10+ or macOS 10.14+
-- Node.js 16+ (for installer only)
+- ${platform === 'win32' ? 'Windows 10 or later' : platform === 'darwin' ? 'macOS 10.14 or later' : 'Linux (64-bit)'}
+- 500MB free disk space
+- Internet connection for content streaming
+
+## Support
+
+Visit ${config.website} for support and documentation.
 `;
     
-    await fs.writeFile(path.join(winInstallerDir, 'README.md'), installerReadme);
+    await fs.writeFile(readmePath, readmeContent);
     
-    // Create the final installer package
-    const installerZipPath = path.join(this.outputDir, `${this.appName}-Installer-Windows.zip`);
-    await this.createZipFromDirectory(winInstallerDir, installerZipPath);
+    // Create installer ZIP
+    await createZipArchive(tempInstallerDir, outputPath, platform);
     
-    // Clean up temporary installer directory
-    await fs.remove(winInstallerDir);
+    console.log(`     ✅ Installer package created`);
+  } finally {
+    // Clean up temp directory
+    await fs.remove(tempInstallerDir);
   }
+}
 
-  async createStandalonePortable() {
-    console.log('🎯 Creating standalone portable versions...');
+async function packageForDistribution() {
+  console.log('🚀 Starting Streall Distribution Packaging\n');
+  
+  const startTime = Date.now();
+  const platform = await detectPlatform();
+  
+  try {
+    // Setup directories
+    await fs.ensureDir(config.outputDir);
+    await fs.ensureDir(config.tempDir);
     
-    // Create a version that doesn't need the installer
-    const portableDir = path.join(this.outputDir, 'portable');
-    await fs.ensureDir(portableDir);
+    // Clean previous builds
+    console.log('🧹 Cleaning previous packages...');
+    await fs.emptyDir(config.outputDir);
     
-    // Copy the ZIP files to the portable directory with instructions
-    const winZipSource = path.join(this.outputDir, `${this.appName}-Portable-Windows.zip`);
-    if (fs.existsSync(winZipSource)) {
-      await fs.copy(winZipSource, path.join(portableDir, `${this.appName}-Portable-Windows.zip`));
+    // Build application
+    await buildApplication();
+    
+    // Check if build output exists
+    const sourceDir = config.sources[platform];
+    if (!await fs.pathExists(sourceDir)) {
+      throw new Error(`Build output not found: ${sourceDir}`);
     }
     
-    // Create simple instructions
-    const portableReadme = `# ${this.appName} Portable
-
-## Simple Installation
-
-### Windows:
-1. Extract \`${this.appName}-Portable-Windows.zip\`
-2. Double-click \`Streall.exe\` to run
-3. (Optional) Right-click Streall.exe → Send to → Desktop to create a shortcut
-
-### macOS:
-1. Extract \`${this.appName}-Portable-macOS.zip\` (when available)
-2. Drag \`Streall.app\` to your Applications folder
-3. Launch from Applications or Spotlight
-
-## No Installation Required!
-
-These are completely portable versions - no installation needed. Just extract and run!
-`;
+    console.log('\n📦 Creating distribution packages...\n');
     
-    await fs.writeFile(path.join(portableDir, 'README.md'), portableReadme);
-  }
-
-  async generateDistributionSummary() {
-    console.log('📋 Generating distribution summary...');
+    // Create portable package
+    const portableZipName = `${config.appName}-v${config.version}-${platform}-portable.zip`;
+    const portableZipPath = path.join(config.outputDir, portableZipName);
     
-    const files = await fs.readdir(this.outputDir);
-    const summary = {
-      appName: this.appName,
-      version: this.version,
+    console.log('1️⃣ Creating portable package...');
+    await createZipArchive(sourceDir, portableZipPath, platform);
+    
+    // Create installer package
+    const installerZipName = `${config.appName}-v${config.version}-${platform}-installer.zip`;
+    const installerZipPath = path.join(config.outputDir, installerZipName);
+    
+    console.log('\n2️⃣ Creating installer package...');
+    await createInstallerPackage(portableZipPath, installerZipPath, platform);
+    
+    // Generate distribution info
+    console.log('\n📊 Generating package information...');
+    
+    const packages = [];
+    const packageFiles = await fs.readdir(config.outputDir);
+    
+    for (const file of packageFiles) {
+      const filePath = path.join(config.outputDir, file);
+      const stats = await fs.stat(filePath);
+      const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
+      
+      packages.push({
+        name: file,
+        size: `${sizeMB}MB`,
+        path: filePath,
+        type: file.includes('installer') ? 'installer' : 'portable'
+      });
+    }
+    
+    // Create distribution manifest
+    const manifest = {
+      appName: config.appName,
+      version: config.version,
+      platform: platform,
       buildDate: new Date().toISOString(),
-      packages: []
+      packages: packages,
+      installation: {
+        installer: `Extract and run: node installer.js`,
+        portable: `Extract and run the application directly`,
+        requirements: {
+          os: platform === 'win32' ? 'Windows 10+' : platform === 'darwin' ? 'macOS 10.14+' : 'Linux 64-bit',
+          memory: '4GB RAM recommended',
+          storage: '500MB free space',
+          network: 'Internet connection required'
+        }
+      }
     };
     
-    for (const file of files) {
-      const filePath = path.join(this.outputDir, file);
-      const stats = await fs.stat(filePath);
-      
-      if (stats.isFile() && file.endsWith('.zip')) {
-        summary.packages.push({
-          name: file,
-          size: `${(stats.size / 1024 / 1024).toFixed(2)} MB`,
-          type: file.includes('Installer') ? 'installer' : 'portable'
-        });
-      }
-    }
+    const manifestPath = path.join(config.outputDir, 'distribution-info.json');
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
     
-    await fs.writeJson(path.join(this.outputDir, 'build-summary.json'), summary, { spaces: 2 });
+    // Summary
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     
-    console.log('\n📊 Distribution Summary:');
-    console.log('═'.repeat(50));
-    summary.packages.forEach(pkg => {
-      console.log(`📦 ${pkg.name} (${pkg.size}) - ${pkg.type}`);
+    console.log('\n🎉 Distribution packaging completed!\n');
+    console.log('📋 Package Summary:');
+    console.log(`   Platform: ${platform}`);
+    console.log(`   Version: ${config.version}`);
+    console.log(`   Build time: ${elapsed}s\n`);
+    
+    console.log('📦 Created packages:');
+    packages.forEach(pkg => {
+      const icon = pkg.type === 'installer' ? '🎁' : '📱';
+      console.log(`   ${icon} ${pkg.name} (${pkg.size})`);
     });
-  }
-
-  async package() {
-    try {
-      console.log(`🚀 ${this.appName} Distribution Packager v${this.version}`);
-      console.log('═'.repeat(60));
-      
-      // Clean previous builds
-      if (fs.existsSync(this.outputDir)) {
-        await fs.remove(this.outputDir);
-      }
-      
-      await this.buildApplication();
-      await this.createPortablePackages();
-      await this.createInstallerPackages();
-      await this.createStandalonePortable();
-      await this.generateDistributionSummary();
-      
-      console.log('═'.repeat(60));
-      console.log('🎉 Distribution packages created successfully!');
-      console.log(`📁 Output directory: ${this.outputDir}`);
-      console.log('\n💡 Distribution options:');
-      console.log('  • Installer packages: Automatic installation with shortcuts');
-      console.log('  • Portable packages: Extract and run, no installation needed');
-      console.log('\n🚀 Ready for distribution!');
-      
-    } catch (error) {
-      console.error('💥 Packaging failed:');
-      console.error(error.message);
-      process.exit(1);
+    
+    console.log(`\n📁 Output directory: ${config.outputDir}`);
+    console.log('\n🚀 Ready for distribution!\n');
+    
+    console.log('💡 Usage Instructions:');
+    console.log('   • Installer: Extract and run "node installer.js"');
+    console.log('   • Portable: Extract and run the app directly');
+    console.log('   • Share the appropriate package with users\n');
+    
+  } catch (error) {
+    console.error('\n❌ Packaging failed:', error.message);
+    throw error;
+  } finally {
+    // Cleanup
+    if (await fs.pathExists(config.tempDir)) {
+      await fs.remove(config.tempDir);
     }
   }
 }
 
-// Install archiver if not already installed
-try {
-  require('archiver');
-} catch (error) {
-  console.log('📦 Installing required dependencies...');
-  execSync('npm install --save-dev archiver', { stdio: 'inherit' });
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  packageForDistribution().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
 }
 
-// Run packager if called directly
-if (require.main === module) {
-  const packager = new DistributionPackager();
-  packager.package();
-}
-
-module.exports = DistributionPackager; 
+export default packageForDistribution; 

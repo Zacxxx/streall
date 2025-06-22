@@ -10,10 +10,13 @@ import { AllContentBrowser } from '@/components/all-content-browser'
 import { UltraSearch } from '@/components/ultra-search'
 import { WatchlistView } from '@/components/watchlist-view'
 import { NetflixScrollToTop } from '@/components/netflix-enhancement'
+import { WelcomeModal } from '@/components/welcome-modal'
+import { SettingsPage } from '@/components/settings-page'
 import { tmdbService, type ContentItem } from '@/services/tmdb-service'
 import { authService } from '@/services/auth-service'
+import { settingsService } from '@/services/settings-service'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Settings } from 'lucide-react'
 import { ContentDetails } from '@/components/content-details'
 
 // Layout wrapper for consistent header/footer
@@ -23,6 +26,7 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
   showFooter?: boolean 
 }) {
   const navigate = useNavigate()
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleSearch = () => {
     navigate('/search')
@@ -30,6 +34,10 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
 
   const handleHome = () => {
     navigate('/')
+  }
+
+  const handleSettings = () => {
+    setShowSettings(true)
   }
 
   return (
@@ -40,6 +48,7 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
           onViewChange={() => {}}
           onSearch={handleSearch}
           onHome={handleHome}
+          onSettings={settingsService.isDesktopApp ? handleSettings : undefined}
         />
       )}
       
@@ -49,6 +58,12 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
       
       {showFooter && <Footer />}
       <NetflixScrollToTop />
+      
+      {/* Settings Modal */}
+      <SettingsPage
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   )
 }
@@ -231,6 +246,9 @@ function PlayerPage() {
 function MainApp() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
+  const [showWelcome, setShowWelcome] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [setupRequired, setSetupRequired] = useState(false)
 
   useEffect(() => {
     // Initialize app
@@ -240,6 +258,20 @@ function MainApp() {
         const authState = authService.getCurrentAuthState()
         if (authState.isAuthenticated && authState.user) {
           // User is authenticated
+        }
+
+        // Check for first-time setup (only for desktop)
+        if (settingsService.isDesktopApp) {
+          const isFirstLaunch = settingsService.isFirstLaunch
+          const isSetupComplete = settingsService.isSetupCompleted
+          
+          if (isFirstLaunch && !isSetupComplete) {
+            setShowWelcome(true)
+            setSetupRequired(true)
+          } else if (!isSetupComplete) {
+            // Not first launch but setup incomplete
+            setSetupRequired(true)
+          }
         }
       } catch (error) {
         console.error('Authentication error:', error)
@@ -257,6 +289,31 @@ function MainApp() {
     // Use TMDB ID consistently with media type
     const contentId = content.tmdb_id;
     navigate(`/watch/${content.type}/${contentId}`)
+  }
+
+  const handleWelcomeClose = () => {
+    setShowWelcome(false)
+    settingsService.completeFirstLaunch()
+  }
+
+  const handleWelcomeOpenSettings = () => {
+    setShowWelcome(false)
+    setShowSettings(true)
+    settingsService.completeFirstLaunch()
+  }
+
+  const handleSettingsClose = () => {
+    setShowSettings(false)
+    // Check if setup is now complete
+    if (settingsService.isSetupCompleted) {
+      setSetupRequired(false)
+    }
+  }
+
+  const handleSetupComplete = () => {
+    setShowSettings(false)
+    setSetupRequired(false)
+    // Optionally show a success message or refresh the app
   }
 
   if (isLoading) {
@@ -367,6 +424,43 @@ function MainApp() {
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* First-time setup modals - only for desktop */}
+      {settingsService.isDesktopApp && (
+        <>
+          <WelcomeModal
+            isOpen={showWelcome}
+            onClose={handleWelcomeClose}
+            onOpenSettings={handleWelcomeOpenSettings}
+          />
+          
+          <SettingsPage
+            isOpen={showSettings}
+            onClose={handleSettingsClose}
+            onSetupComplete={handleSetupComplete}
+          />
+        </>
+      )}
+
+      {/* Setup Required Warning */}
+      {setupRequired && !showWelcome && !showSettings && (
+        <div className="fixed bottom-4 right-4 z-50 bg-yellow-600 text-black p-4 rounded-lg shadow-lg max-w-sm">
+          <div className="flex items-center space-x-2">
+            <Settings className="w-5 h-5" />
+            <div>
+              <p className="font-semibold">Setup Required</p>
+              <p className="text-sm">Configure your TMDB API key to access content.</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="mt-2 bg-yellow-700 hover:bg-yellow-800 text-white"
+            onClick={() => setShowSettings(true)}
+          >
+            Open Settings
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

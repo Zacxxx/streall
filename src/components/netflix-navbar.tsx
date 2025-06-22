@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Bell, User, ChevronDown, Grid, Heart } from 'lucide-react';
+import { Search, Bell, User, ChevronDown, Grid, Heart, Settings } from 'lucide-react';
 
 type View = 'home' | 'search' | 'player' | 'movies' | 'series' | 'trending' | 'watchlist';
 
@@ -10,6 +10,7 @@ interface NetflixNavbarProps {
   onViewChange: (view: View) => void;
   onSearch: () => void;
   onHome: () => void;
+  onSettings?: () => void;
   isAuthenticated?: boolean;
   userProfile?: {
     name: string;
@@ -21,7 +22,7 @@ interface NetflixNavbarProps {
   onLogout?: () => void;
 }
 
-export function NetflixNavbar({ onSearch, onHome }: NetflixNavbarProps) {
+export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const location = useLocation();
@@ -173,6 +174,23 @@ export function NetflixNavbar({ onSearch, onHome }: NetflixNavbarProps) {
           >
             <Search className="w-5 h-5 group-hover:text-red-400 transition-colors" />
           </motion.button>
+
+          {/* Settings Button - Desktop Only */}
+          {onSettings && (
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onSettings}
+              className="p-2 text-slate-300 hover:text-white transition-all duration-300 rounded-full hover:bg-white/10 group"
+              style={{
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)'
+              }}
+              title="Settings"
+            >
+              <Settings className="w-5 h-5 group-hover:text-red-400 transition-colors" />
+            </motion.button>
+          )}
 
           {/* Notifications */}
           <motion.button 

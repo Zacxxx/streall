@@ -1,5 +1,9 @@
 // Direct TMDB API service with 2embed streaming integration
-const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4MDQyMTY2ZGFjNTNkM2UyY2Y5MDE5ODU4ZDk0MTc4YyIsIm5iZiI6MTczMjczMDY0NC42MjMsInN1YiI6IjY3NDZjOTY0ZjkyNWY5M2MyZGYwNDQ1MSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.3fzIEyH9aP79FZ-Uh6h2LFBrNGAh8J8bIqF7pVvuiYg';
+import { settingsService } from './settings-service';
+
+// Fallback API key for development - will be overridden by settings service in production
+const FALLBACK_TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4MDQyMTY2ZGFjNTNkM2UyY2Y5MDE5ODU4ZDk0MTc4YyIsIm5iZiI6MTczMjczMDY0NC42MjMsInN1YiI6IjY3NDZjOTY0ZjkyNWY5M2MyZGYwNDQ1MSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.3fzIEyH9aP79FZ-Uh6h2LFBrNGAh8J8bIqF7pVvuiYg';
+
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/';
 
@@ -81,8 +85,26 @@ class TMDBService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private cacheTimeout = 30 * 60 * 1000; // 30 minutes
 
+  // Get the current API key from settings or fallback
+  private getApiKey(): string {
+    const settingsApiKey = settingsService.tmdbApiKey;
+    return settingsApiKey || FALLBACK_TMDB_API_KEY;
+  }
+
+  // Check if API key is configured
+  public isConfigured(): boolean {
+    const apiKey = this.getApiKey();
+    return !!(apiKey && apiKey !== FALLBACK_TMDB_API_KEY);
+  }
+
   // Make API request to TMDB
   private async tmdbRequest(endpoint: string, params: Record<string, any> = {}): Promise<any> {
+    const apiKey = this.getApiKey();
+    
+    if (!apiKey) {
+      throw new Error('TMDB API key not configured. Please configure your API key in settings.');
+    }
+
     const cacheKey = `${endpoint}_${JSON.stringify(params)}`;
     
     // Check cache first
@@ -93,7 +115,7 @@ class TMDBService {
 
     try {
       const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
-      url.searchParams.append('api_key', TMDB_API_KEY);
+      url.searchParams.append('api_key', apiKey);
       
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -104,6 +126,9 @@ class TMDBService {
       const response = await fetch(url.toString());
       
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid TMDB API key. Please check your API key in settings.');
+        }
         throw new Error(`TMDB API Error: ${response.status} ${response.statusText}`);
       }
       
