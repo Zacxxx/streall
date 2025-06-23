@@ -45,9 +45,9 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
   }, [content.imdb_id]);
 
   const cardSizes = {
-    small: compact ? 'w-full h-24' : 'w-44 h-64',
-    medium: compact ? 'w-full h-32' : 'w-48 h-72',
-    large: compact ? 'w-full h-40' : 'w-56 h-80'
+    small: compact ? 'w-full h-24' : 'w-44 h-64 max-h-64',
+    medium: compact ? 'w-full h-32' : 'w-48 h-72 max-h-72',
+    large: compact ? 'w-full h-40' : 'w-56 h-80 max-h-80'
   };
 
   const handlePlay = () => {

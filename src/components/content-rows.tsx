@@ -221,15 +221,20 @@ export function ContentRows() {
             </div>
 
             {/* Scrollable Content Row with Navigation */}
-            <div className="relative group">
+            <div className="relative group content-rows-container netflix-content-row">
               {/* Left Navigation Arrow - Only show if scrolled */}
               {showLeftArrow && (
                 <motion.button
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/80 hover:bg-black/90 text-white p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                  whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.95)" }}
+                  whileTap={{ scale: 0.95 }}
+                  className="navigation-button absolute left-2 z-20 bg-black/80 hover:bg-black/95 text-white p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                  style={{ 
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    transformOrigin: 'center center'
+                  }}
                   onClick={() => scrollSection(section.title, 'left')}
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -238,9 +243,14 @@ export function ContentRows() {
 
               {/* Right Navigation Arrow */}
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/80 hover:bg-black/90 text-white p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.95)" }}
+                whileTap={{ scale: 0.95 }}
+                className="navigation-button absolute right-2 z-20 bg-black/80 hover:bg-black/95 text-white p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                style={{ 
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  transformOrigin: 'center center'
+                }}
                 onClick={() => scrollSection(section.title, 'right')}
               >
                 <ChevronRight className="w-6 h-6" />
@@ -253,7 +263,7 @@ export function ContentRows() {
               {/* Horizontal scrolling container */}
               <div
                 ref={(el) => { scrollRefs.current[section.title] = el; }}
-                className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth"
+                className="flex gap-4 content-rows-scrollable scrollbar-hide scroll-smooth"
                 style={{
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none',
@@ -272,7 +282,7 @@ export function ContentRows() {
                         delay: index * 0.05,
                         ease: "easeOut"
                       }}
-                      className="flex-shrink-0"
+                      className="flex-shrink-0 content-rows-item"
                       style={{ 
                         pointerEvents: 'auto',
                         touchAction: 'manipulation' // Prevent scroll interference
@@ -288,7 +298,7 @@ export function ContentRows() {
                 ) : (
                   // Loading skeletons
                   Array.from({ length: 8 }).map((_, index) => (
-                    <div key={index} className="flex-shrink-0">
+                    <div key={index} className="flex-shrink-0 content-rows-item">
                       <NetflixCardSkeleton count={1} />
                     </div>
                   ))

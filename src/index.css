@@ -242,6 +242,33 @@
   display: none;
 }
 
+/* Content Rows Height Fix */
+.content-rows-container {
+  height: 20rem; /* 320px - consistent height for all rows */
+  overflow-y: hidden;
+}
+
+.content-rows-scrollable {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.content-rows-item {
+  height: 18rem; /* 288px - slightly smaller to allow for padding */
+  flex-shrink: 0;
+}
+
+/* Ensure Netflix cards don't overflow vertically */
+.netflix-content-row {
+  max-height: 20rem;
+  overflow-y: hidden;
+}
+
+.netflix-content-row .flex {
+  align-items: flex-start;
+}
+
 /* Text Utilities */
 .line-clamp-1 {
   display: -webkit-box;
@@ -455,4 +482,17 @@
   .netflix-glow {
     display: none !important;
   }
+}
+
+/* Navigation Buttons Stability */
+.navigation-button {
+  will-change: background-color, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  position: absolute;
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
+.navigation-button:hover {
+  transform: translateY(-50%) !important;
 }
