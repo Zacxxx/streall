@@ -168,21 +168,28 @@ export class StreamExtractor {
       for (const pattern of encodedPatterns) {
         const matches = Array.from(html.matchAll(pattern));
         for (const match of matches) {
-          try {
-            const decoded = atob(match[1]);
-            if (decoded.includes('.m3u8') || decoded.includes('.mp4')) {
-              console.log('🔓 Decoded stream URL:', decoded);
-              sources.push({
-                url: decoded,
-                type: decoded.includes('.m3u8') ? 'hls' : 'mp4',
-                quality: 'auto',
-                label: 'Decoded Stream'
-              });
+          if (match[1]) {
+            try {
+              const decoded = atob(match[1]);
+              if (decoded.includes('.m3u8') || decoded.includes('.mp4')) {
+                console.log('🔓 Decoded stream URL:', decoded);
+                sources.push({
+                  url: decoded,
+                  type: decoded.includes('.m3u8') ? 'hls' : 'mp4',
+                  quality: 'auto',
+                  label: 'Decoded Stream'
+                });
+              }
+            } catch (e) {
+              // Invalid base64, ignore
             }
-          } catch (e) {
-            // Invalid base64, ignore
           }
         }
+      }
+
+      // Use foundIframes to provide feedback
+      if (!foundIframes && sources.length === 0) {
+        console.log('⚠️ No iframe sources found in 2embed.skin');
       }
 
       if (sources.length > 0) {
@@ -423,6 +430,8 @@ export class StreamExtractor {
       for (const match of iframeMatches) {
         let nestedUrl = match[1];
         
+        if (!nestedUrl) continue; // Skip if no URL found
+        
         // Handle relative URLs
         if (nestedUrl.startsWith('//')) {
           nestedUrl = 'https:' + nestedUrl;
@@ -454,8 +463,18 @@ export class StreamExtractor {
   static async extractStreamsFromUrl(url: string): Promise<ExtractedStreams | null> {
     console.log('🎬 Starting stream extraction from:', url);
 
+    if (!url) {
+      console.log('❌ No URL provided');
+      return null;
+    }
+
     // Clean the URL
-    const cleanUrl = url.split('?')[0].split('#')[0];
+    const cleanUrl = url.split('?')[0]?.split('#')[0];
+    
+    if (!cleanUrl) {
+      console.log('❌ Could not clean URL');
+      return null;
+    }
     
     // Choose extraction method based on the service
     if (cleanUrl.includes('2embed.cc')) {
@@ -484,7 +503,7 @@ export class StreamExtractor {
    */
   static extractTitle(html: string): string | undefined {
     const titleMatch = html.match(/<title[^>]*>([^<]+)</i);
-    if (titleMatch) {
+    if (titleMatch && titleMatch[1]) {
       return titleMatch[1].trim();
     }
     return undefined;
