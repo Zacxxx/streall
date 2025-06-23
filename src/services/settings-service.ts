@@ -5,6 +5,14 @@ interface AppSettings {
   setupCompleted: boolean;
   appVersion: string;
   lastLaunch: string;
+  adBlocker: {
+    enabled: boolean;
+    blockAds: boolean;
+    blockTrackers: boolean;
+    blockMalware: boolean;
+    allowSocialMedia: boolean;
+    customFilters: string[];
+  };
 }
 
 class SettingsService {
@@ -13,8 +21,16 @@ class SettingsService {
     tmdbApiKey: null,
     isFirstLaunch: true,
     setupCompleted: false,
-    appVersion: '1.0.0',
-    lastLaunch: new Date().toISOString()
+    appVersion: '1.0.1',
+    lastLaunch: new Date().toISOString(),
+    adBlocker: {
+      enabled: true,
+      blockAds: true,
+      blockTrackers: true,
+      blockMalware: true,
+      allowSocialMedia: false,
+      customFilters: []
+    }
   };
 
   private settings: AppSettings;
@@ -88,6 +104,14 @@ class SettingsService {
     return this.settings.appVersion;
   }
 
+  get adBlockerSettings() {
+    return this.settings.adBlocker;
+  }
+
+  get isAdBlockerEnabled(): boolean {
+    return this.settings.adBlocker.enabled;
+  }
+
   // Setters
   setTmdbApiKey(apiKey: string): void {
     this.settings.tmdbApiKey = apiKey;
@@ -104,6 +128,16 @@ class SettingsService {
     this.settings.setupCompleted = true;
     this.settings.isFirstLaunch = false;
     this.settings.lastLaunch = new Date().toISOString();
+    this.saveSettings();
+  }
+
+  updateAdBlockerSettings(settings: Partial<AppSettings['adBlocker']>): void {
+    this.settings.adBlocker = { ...this.settings.adBlocker, ...settings };
+    this.saveSettings();
+  }
+
+  toggleAdBlocker(enabled: boolean): void {
+    this.settings.adBlocker.enabled = enabled;
     this.saveSettings();
   }
 

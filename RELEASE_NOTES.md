@@ -19,6 +19,7 @@ Streall is a modern streaming content browser application that helps you discove
 
 ### Technical Highlights
 - **TMDB Integration**: Powered by The Movie Database for accurate content information
+- **Built-in Ad Blocker**: Ghostery-powered ad blocking for desktop app (blocks ads, trackers, malware)
 - **Responsive Design**: Works perfectly on all screen sizes
 - **Custom Scrollbars**: Netflix-themed UI elements
 - **Real-time Search**: Instant results as you type
@@ -27,10 +28,11 @@ Streall is a modern streaming content browser application that helps you discove
 ## 📦 Available Downloads
 
 ### Windows (64-bit)
-- **Streall-v1.0.0-Windows-Portable.zip** (121.89 MB)
+- **Streall-v1.0.1-Windows-Portable.zip** (~130 MB)
   - Portable version - no installation required
   - Simply extract and run `Streall.exe`
   - Includes all dependencies
+  - **Built-in Ghostery Ad Blocker** - blocks ads, trackers, and malware automatically
 
 ### Web Version
 - Access directly at your deployment URL

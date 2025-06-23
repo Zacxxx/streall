@@ -14,7 +14,10 @@ import {
   EyeOff,
   Info,
   Download,
-  Upload
+  Upload,
+  Shield,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import { settingsService } from '../services/settings-service';
 
@@ -37,6 +40,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   } | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [adBlockerSettings, setAdBlockerSettings] = useState(settingsService.adBlockerSettings);
 
   useEffect(() => {
     if (isOpen) {
@@ -263,6 +267,146 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
             </Card>
 
+            {/* Ad Blocker Settings - Desktop Only */}
+            {settingsService.isDesktopApp && (
+              <Card className="bg-gray-900/50 border-gray-700 p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Shield className="w-5 h-5 text-red-500" />
+                    <h3 className="text-lg font-semibold">Ghostery Ad Blocker</h3>
+                    <div className="flex items-center space-x-2 ml-auto">
+                      <span className="text-sm text-gray-400">
+                        {adBlockerSettings.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const newSettings = { ...adBlockerSettings, enabled: !adBlockerSettings.enabled };
+                          setAdBlockerSettings(newSettings);
+                          settingsService.updateAdBlockerSettings(newSettings);
+                        }}
+                        className="text-red-500 hover:text-red-400"
+                      >
+                        {adBlockerSettings.enabled ? 
+                          <ToggleRight className="w-6 h-6" /> : 
+                          <ToggleLeft className="w-6 h-6" />
+                        }
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <Shield className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <p className="text-green-200 mb-2">
+                          <strong>Built-in Ghostery Ad Blocker</strong> - Blocks ads, trackers, and malware automatically!
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 text-green-100">
+                          <li>Uses the same filter lists as uBlock Origin</li>
+                          <li>Blocks ads, trackers, and malicious content</li>
+                          <li>Improves page loading speed and privacy</li>
+                          <li>Works automatically in the background</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {adBlockerSettings.enabled && (
+                    <div className="space-y-4">
+                      <h4 className="text-md font-medium text-gray-300">Blocking Options</h4>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <div>
+                            <span className="text-sm font-medium text-white">Block Ads</span>
+                            <p className="text-xs text-gray-400">Remove advertisements</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newSettings = { ...adBlockerSettings, blockAds: !adBlockerSettings.blockAds };
+                              setAdBlockerSettings(newSettings);
+                              settingsService.updateAdBlockerSettings(newSettings);
+                            }}
+                            className="text-red-500 hover:text-red-400"
+                          >
+                            {adBlockerSettings.blockAds ? 
+                              <ToggleRight className="w-5 h-5" /> : 
+                              <ToggleLeft className="w-5 h-5" />
+                            }
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <div>
+                            <span className="text-sm font-medium text-white">Block Trackers</span>
+                            <p className="text-xs text-gray-400">Prevent tracking scripts</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newSettings = { ...adBlockerSettings, blockTrackers: !adBlockerSettings.blockTrackers };
+                              setAdBlockerSettings(newSettings);
+                              settingsService.updateAdBlockerSettings(newSettings);
+                            }}
+                            className="text-red-500 hover:text-red-400"
+                          >
+                            {adBlockerSettings.blockTrackers ? 
+                              <ToggleRight className="w-5 h-5" /> : 
+                              <ToggleLeft className="w-5 h-5" />
+                            }
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <div>
+                            <span className="text-sm font-medium text-white">Block Malware</span>
+                            <p className="text-xs text-gray-400">Protect from malicious sites</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newSettings = { ...adBlockerSettings, blockMalware: !adBlockerSettings.blockMalware };
+                              setAdBlockerSettings(newSettings);
+                              settingsService.updateAdBlockerSettings(newSettings);
+                            }}
+                            className="text-red-500 hover:text-red-400"
+                          >
+                            {adBlockerSettings.blockMalware ? 
+                              <ToggleRight className="w-5 h-5" /> : 
+                              <ToggleLeft className="w-5 h-5" />
+                            }
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <div>
+                            <span className="text-sm font-medium text-white">Allow Social Media</span>
+                            <p className="text-xs text-gray-400">Keep social widgets</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newSettings = { ...adBlockerSettings, allowSocialMedia: !adBlockerSettings.allowSocialMedia };
+                              setAdBlockerSettings(newSettings);
+                              settingsService.updateAdBlockerSettings(newSettings);
+                            }}
+                            className="text-red-500 hover:text-red-400"
+                          >
+                            {adBlockerSettings.allowSocialMedia ? 
+                              <ToggleRight className="w-5 h-5" /> : 
+                              <ToggleLeft className="w-5 h-5" />
+                            }
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500 mt-4">
+                        <p>⚡ Changes take effect immediately. Restart the app if you experience any issues.</p>
+                        <p>🔄 Filter lists are updated automatically to block new threats.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+
             {/* App Information */}
             <Card className="bg-gray-900/50 border-gray-700 p-6">
               <div className="space-y-4">
@@ -291,6 +435,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       {settingsService.tmdbApiKey ? 'Configured' : 'Not Set'}
                     </span>
                   </div>
+                  {settingsService.isDesktopApp && (
+                    <div>
+                      <span className="text-gray-400">Ad Blocker:</span>
+                      <span className={`ml-2 ${settingsService.isAdBlockerEnabled ? 'text-green-400' : 'text-yellow-400'}`}>
+                        {settingsService.isAdBlockerEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
