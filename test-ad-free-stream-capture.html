@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Ad-Free Dynamic Stream Capture Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #000;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+        .warning { color: #ff9800; }
+        .shield { color: #9C27B0; }
+        .stream-url {
+            background: #333;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+        .ad-block-info {
+            background: #4a148c;
+            border: 1px solid #7b1fa2;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Ad-Free Dynamic Stream Capture Test</h1>
+        <p>This page tests the dynamic stream capture system with comprehensive ad-blocking using iframe sandbox attributes.</p>
+        
+        <div class="test-section">
+            <h2>🛡️ Ad-Blocking Features</h2>
+            <div class="ad-block-info">
+                <h3>🚫 Blocked by Sandbox:</h3>
+                <ul>
+                    <li>✅ Popup ads (no allow-popups)</li>
+                    <li>✅ Navigation hijacking (no allow-top-navigation)</li>
+                    <li>✅ Modal ads (no allow-modals)</li>
+                    <li>✅ Unwanted downloads (no allow-downloads)</li>
+                    <li>✅ Popup escapes (no allow-popups-to-escape-sandbox)</li>
+                </ul>
+                <h3>✅ Allowed for Video Players:</h3>
+                <ul>
+                    <li>🎬 JavaScript execution (allow-scripts)</li>
+                    <li>🌐 Same-origin requests (allow-same-origin)</li>
+                    <li>📝 Form submission (allow-forms)</li>
+                    <li>📺 Fullscreen API (allow-presentation)</li>
+                    <li>📱 Screen orientation (allow-orientation-lock)</li>
+                    <li>🖱️ Pointer lock (allow-pointer-lock)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎯 Test Controls</h2>
+            <button id="testBtn" onclick="runTest()">🛡️ Start Ad-Free Stream Capture</button>
+            <button onclick="clearLog()">Clear Log</button>
+            <button onclick="testSandboxAttributes()">🔍 Test Sandbox Attributes</button>
+            <button onclick="testAdBlocking()">🚫 Test Ad Blocking</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Test Results</h2>
+            <div id="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📝 Live Log</h2>
+            <div id="log" class="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎬 Captured Streams</h2>
+            <div id="streams"></div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced logging system
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('streams').innerHTML = '';
+        }
+
+        // Test functions
+        async function runTest() {
+            const btn = document.getElementById('testBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Running Ad-Free Test...';
+            
+            clearLog();
+            log('🚀 Starting Ad-Free Dynamic Stream Capture Test', 'info');
+            
+            // Create iframe with ad-blocking sandbox
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.style.width = '1280px';
+            iframe.style.height = '720px';
+            iframe.style.position = 'absolute';
+            iframe.style.top = '-9999px';
+            iframe.src = 'https://www.2embed.cc/embed/574475';
+            
+            // Comprehensive ad-blocking sandbox - matches our main implementation
+            const sandboxAttributes = [
+                'allow-scripts',           // Allow JavaScript (needed for video players)
+                'allow-same-origin',       // Allow same-origin requests
+                'allow-forms',             // Allow form submission (some players need this)
+                'allow-presentation',      // Allow fullscreen API
+                'allow-orientation-lock',  // Allow screen orientation
+                'allow-pointer-lock'       // Allow pointer lock for fullscreen
+                // Explicitly NOT allowing:
+                // - allow-popups (blocks popup ads)
+                // - allow-popups-to-escape-sandbox (blocks popup escapes)
+                // - allow-top-navigation (blocks navigation hijacking)
+                // - allow-top-navigation-by-user-activation (blocks user-triggered navigation)
+                // - allow-modals (blocks modal ads)
+                // - allow-downloads (blocks unwanted downloads)
+            ].join(' ');
+            
+            iframe.setAttribute('sandbox', sandboxAttributes);
+            log('🛡️ Sandbox attributes applied: ' + sandboxAttributes, 'shield');
+            log('🚫 Ad-blocking: No popups, no navigation hijacking, no modals, no downloads', 'shield');
+            
+            const capturedStreams = [];
+            const blockedRequests = [];
+            
+            // Network interception for ad blocking
+            const originalFetch = window.fetch;
+            window.fetch = async (...args) => {
+                const url = args[0]?.toString() || '';
+                
+                // Check if it's an ad request
+                const adPatterns = [
+                    /googlesyndication\.com/i,
+                    /doubleclick\.net/i,
+                    /googleadservices\.com/i,
+                    /facebook\.com\/tr/i,
+                    /analytics\.google\.com/i,
+                    /google-analytics\.com/i,
+                    /googletagmanager\.com/i,
+                    /adsystem\.com/i,
+                    /adsense/i,
+                    /advertising/i,
+                    /tracker/i,
+                    /popup/i,
+                    /banner/i
+                ];
+                
+                if (adPatterns.some(pattern => pattern.test(url))) {
+                    blockedRequests.push(url);
+                    log('🚫 Blocked ad request: ' + url, 'shield');
+                    return Promise.reject(new Error('Ad request blocked'));
+                }
+                
+                // Check if it's a stream URL
+                if (/\.(m3u8|mp4|webm)(\?|$)/i.test(url)) {
+                    log('🎯 Stream URL captured: ' + url, 'success');
+                    capturedStreams.push(url);
+                    
+                    const streamDiv = document.createElement('div');
+                    streamDiv.className = 'stream-url';
+                    streamDiv.innerHTML = `<strong>🎯 Stream Found:</strong><br><small>${url}</small>`;
+                    document.getElementById('streams').appendChild(streamDiv);
+                }
+                
+                log('📡 Request: ' + url, 'info');
+                return originalFetch(...args);
+            };
+            
+            iframe.onload = () => {
+                log('📺 Ad-free embed page loaded', 'info');
+                setTimeout(() => {
+                    log(`✅ Test complete. Found ${capturedStreams.length} streams, blocked ${blockedRequests.length} ads`, 'success');
+                    
+                    // Display results
+                    const resultsElement = document.getElementById('results');
+                    resultsElement.innerHTML = `
+                        <h3>📊 Test Results</h3>
+                        <p><strong>Success:</strong> ${capturedStreams.length > 0 ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Streams Found:</strong> ${capturedStreams.length}</p>
+                        <p><strong>🛡️ Ads Blocked:</strong> ${blockedRequests.length}</p>
+                        <p><strong>Sandbox:</strong> ${sandboxAttributes}</p>
+                    `;
+                    
+                    window.fetch = originalFetch;
+                    document.body.removeChild(iframe);
+                    btn.disabled = false;
+                    btn.innerHTML = '🛡️ Start Ad-Free Stream Capture';
+                }, 15000);
+            };
+            
+            iframe.onerror = () => {
+                log('❌ Failed to load iframe', 'error');
+                window.fetch = originalFetch;
+                btn.disabled = false;
+                btn.innerHTML = '🛡️ Start Ad-Free Stream Capture';
+            };
+            
+            document.body.appendChild(iframe);
+        }
+
+        function testSandboxAttributes() {
+            log('🔍 Testing iframe sandbox attributes...', 'info');
+            
+            const testIframe = document.createElement('iframe');
+            testIframe.style.display = 'none';
+            testIframe.src = 'about:blank';
+            testIframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock allow-pointer-lock');
+            
+            document.body.appendChild(testIframe);
+            
+            const sandbox = testIframe.getAttribute('sandbox');
+            log('✅ Test iframe sandbox: ' + sandbox, 'shield');
+            
+            const blocked = [];
+            const allowed = [];
+            
+            if (!sandbox.includes('allow-popups')) blocked.push('popups');
+            if (!sandbox.includes('allow-top-navigation')) blocked.push('navigation hijacking');
+            if (!sandbox.includes('allow-modals')) blocked.push('modal ads');
+            if (!sandbox.includes('allow-downloads')) blocked.push('unwanted downloads');
+            
+            if (sandbox.includes('allow-scripts')) allowed.push('JavaScript');
+            if (sandbox.includes('allow-same-origin')) allowed.push('same-origin requests');
+            if (sandbox.includes('allow-forms')) allowed.push('form submission');
+            if (sandbox.includes('allow-presentation')) allowed.push('fullscreen');
+            
+            log('🚫 Blocked: ' + blocked.join(', '), 'shield');
+            log('✅ Allowed: ' + allowed.join(', '), 'success');
+            
+            document.body.removeChild(testIframe);
+            log('🔍 Sandbox test completed', 'info');
+        }
+
+        function testAdBlocking() {
+            log('🚫 Testing ad-blocking patterns...', 'info');
+            
+            const adUrls = [
+                'https://googlesyndication.com/test',
+                'https://doubleclick.net/test',
+                'https://googleadservices.com/test',
+                'https://analytics.google.com/test',
+                'https://facebook.com/tr/test',
+                'https://example.com/popup.js',
+                'https://example.com/banner.jpg'
+            ];
+            
+            const adPatterns = [
+                /googlesyndication\.com/i,
+                /doubleclick\.net/i,
+                /googleadservices\.com/i,
+                /analytics\.google\.com/i,
+                /facebook\.com\/tr/i,
+                /popup/i,
+                /banner/i
+            ];
+            
+            adUrls.forEach(url => {
+                const isBlocked = adPatterns.some(pattern => pattern.test(url));
+                if (isBlocked) {
+                    log(`🚫 Would block: ${url}`, 'shield');
+                } else {
+                    log(`⚠️ Would NOT block: ${url}`, 'warning');
+                }
+            });
+            
+            log('🚫 Ad-blocking test completed', 'info');
+        }
+
+        // Initialize
+        log('🛡️ Ad-Free Dynamic Stream Capture Test Page Ready', 'success');
+        log('Click "Start Ad-Free Stream Capture" to begin testing with comprehensive ad-blocking', 'info');
+    </script>
+</body>
+</html> 

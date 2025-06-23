@@ -2,7 +2,7 @@
 import { settingsService } from './settings-service';
 
 // Fallback API key for development - will be overridden by settings service in production
-const FALLBACK_TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4MDQyMTY2ZGFjNTNkM2UyY2Y5MDE5ODU4ZDk0MTc4YyIsIm5iZiI6MTczMjczMDY0NC42MjMsInN1YiI6IjY3NDZjOTY0ZjkyNWY5M2MyZGYwNDQ1MSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.3fzIEyH9aP79FZ-Uh6h2LFBrNGAh8J8bIqF7pVvuiYg';
+const FALLBACK_TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || '17db4e1c6aec4f836a26810b82bb01b6';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/';

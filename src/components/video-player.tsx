@@ -124,6 +124,9 @@ export function VideoPlayer({ content, embedUrl, onBack }: VideoPlayerProps) {
                       className="w-full h-full"
                       frameBorder="0"
                       allowFullScreen
+                      webkitAllowFullScreen={true}
+                      mozAllowFullScreen={true}
+                      allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
                       title={content.title}
                     />
                   )}

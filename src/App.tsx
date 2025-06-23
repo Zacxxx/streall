@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, User } from 'lucide-react'
 import { ContentDetails } from '@/components/content-details'
+import { CustomVideoPlayer } from '@/components/custom-video-player'
 
 // Layout wrapper for consistent header/footer
 function Layout({ children, showNavbar = true, showFooter = true }: { 
@@ -230,6 +231,7 @@ function PlayerPage() {
   const [content, setContent] = useState<ContentItem | null>(null);
   const [embedUrl, setEmbedUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   useEffect(() => {
     const loadContent = async () => {
@@ -258,18 +260,18 @@ function PlayerPage() {
 
         setContent(contentData);
 
-        // Generate embed URL
-        const baseUrl = 'https://multiembed.mov';
+        // Generate embed URL using 2embed.cc
+        const baseUrl = 'https://www.2embed.cc';
         let url = '';
         
         if (mediaType === 'movie') {
-          url = `${baseUrl}/?video_id=${contentId}&tmdb=1`;
+          url = `${baseUrl}/embed/${contentId}`;
         } else if (mediaType === 'tv') {
           // Get season and episode from URL params
           const urlParams = new URLSearchParams(window.location.search);
           const season = urlParams.get('s') || '1';
           const episode = urlParams.get('e') || '1';
-          url = `${baseUrl}/?video_id=${contentId}&tmdb=1&s=${season}&e=${episode}`;
+          url = `${baseUrl}/embedtv/${contentId}?s=${season}&e=${episode}`;
         }
         
         setEmbedUrl(url);
@@ -286,6 +288,17 @@ function PlayerPage() {
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  const handleExtractStreams = () => {
+    setIsExtracting(true);
+    // Call the extract function exposed by CustomVideoPlayer
+    const windowWithExtract = window as Window & { extractStreamsFunction?: () => void };
+    if (windowWithExtract.extractStreamsFunction) {
+      windowWithExtract.extractStreamsFunction();
+    }
+    // Reset extracting state after a delay
+    setTimeout(() => setIsExtracting(false), 3000);
   };
 
   if (isLoading) {
@@ -320,41 +333,56 @@ function PlayerPage() {
   return (
     <Layout showNavbar={false} showFooter={false}>
       <div className="min-h-screen bg-black text-white">
-        {/* Player Container */}
-        <div className="relative w-full h-screen">
-          {/* Header Controls */}
-          <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button
-                  onClick={handleBack}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/20"
-                >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  Back
-                </Button>
-              </div>
+        {/* Header Controls */}
+        <div className="relative z-50 bg-gradient-to-b from-black/80 to-transparent p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button
+                onClick={handleBack}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Back
+              </Button>
+              
+              <Button
+                onClick={handleExtractStreams}
+                disabled={isExtracting}
+                variant="outline"
+                size="sm"
+                className="text-white border-green-500 hover:bg-green-500/20 disabled:opacity-50"
+              >
+                {isExtracting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Extracting...
+                  </>
+                ) : (
+                  <>
+                    🎬 Dynamic Stream Capture
+                  </>
+                )}
+              </Button>
+            </div>
 
-              <div className="text-right">
-                <h1 className="text-xl font-bold">{content.title}</h1>
-                <p className="text-sm text-slate-300">
-                  {content.year} • {content.type === 'movie' ? 'Movie' : 'TV Series'} • {content.rating}/10
-                </p>
-              </div>
+            <div className="text-right">
+              <h1 className="text-xl font-bold">{content.title}</h1>
+              <p className="text-sm text-slate-300">
+                {content.year} • {content.type === 'movie' ? 'Movie' : 'TV Series'} • {content.rating}/10
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Direct Iframe - No Loading State */}
-          <iframe
-            src={embedUrl}
-            className="w-full h-full"
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; encrypted-media; fullscreen"
+        {/* Custom Video Player Container */}
+        <div className="relative w-full" style={{ height: 'calc(100vh - 80px)' }}>
+          <CustomVideoPlayer
+            embedUrl={embedUrl}
             title={content.title}
-            style={{ background: '#000' }}
+            onBack={handleBack}
+            onExtractStreams={handleExtractStreams}
           />
         </div>
       </div>

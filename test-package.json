@@ -1,0 +1,24 @@
+{
+  "name": "streall-route-tester",
+  "version": "1.0.0",
+  "description": "Test script for Streall app route /watch/movie/574475 to extract stream URLs",
+  "main": "test-watch-route.js",
+  "scripts": {
+    "test": "node test-watch-route.js",
+    "test:headless": "HEADLESS=true node test-watch-route.js",
+    "install-deps": "npm install puppeteer"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "streall",
+    "testing", 
+    "puppeteer",
+    "stream-url",
+    "iframe"
+  ],
+  "author": "Test Script",
+  "license": "MIT"
+} 
