@@ -1,7 +1,7 @@
 {
   "name": "streall",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A streaming content browser application",
   "author": "Streall Team",
   "type": "module",
@@ -85,9 +85,10 @@
       "electron/**/*",
       "node_modules/**/*",
       "public/logo-256.png",
-      "public/logo-512.png"
+      "public/logo-512.png",
+      "public/logo.ico"
     ],
-    "icon": "public/logo-256.png",
+    "icon": "public/logo.ico",
     "compression": "normal",
     "publish": null,
     "mac": {
@@ -104,7 +105,7 @@
       ]
     },
     "win": {
-      "icon": "public/logo-256.png",
+      "icon": "public/logo.ico",
       "target": [
         {
           "target": "dir",

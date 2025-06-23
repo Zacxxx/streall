@@ -2,7 +2,7 @@ const { app, BrowserWindow, Menu, session } = require('electron');
 const path = require('path');
 const { ElectronBlocker } = require('@ghostery/adblocker-electron');
 const fetch = require('cross-fetch');
-const isDev = process.env.NODE_ENV === 'development');
+const isDev = process.env.NODE_ENV === 'development';
 
 // Initialize Ghostery Ad Blocker
 async function initializeAdBlocker() {

@@ -1,3 +1,19 @@
+# Streall v1.0.5 Release Notes
+
+## 🐛 Critical Bug Fixes
+
+### Desktop Application Fixes
+- **Fixed JavaScript Syntax Error**: Resolved crash on startup caused by syntax error in main Electron process
+- **Fixed App Icon**: Windows executable now displays correct Streall icon instead of default Electron icon
+- **Improved Build Configuration**: Updated electron-builder to use proper .ico format for Windows builds
+
+### Technical Improvements
+- **Electron Main Process**: Fixed syntax error that prevented desktop app from launching
+- **Icon Configuration**: Proper icon formats for different platforms (.ico for Windows, .png for macOS)
+- **Build Stability**: Enhanced build process reliability and error handling
+
+---
+
 # Streall v1.0.4 Release Notes
 
 ## 🎉 Major New Features
