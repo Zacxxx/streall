@@ -1,94 +1,135 @@
-# Streall v1.0.0 - Initial Release 🎬
+# Streall v1.0.4 Release Notes
 
-## About Streall
-Streall is a modern streaming content browser application that helps you discover and organize your favorite movies and TV shows. Built with React, TypeScript, and Electron for a seamless cross-platform experience.
+## 🎉 Major New Features
 
-## 🚀 Features
+### 👤 Local User System
+- **Create Local Profiles**: No registration required - create a profile with just your name
+- **Profile Management**: Full profile page with editing capabilities and statistics
+- **User Preferences**: Save your settings and preferences locally
+- **Account Statistics**: Track your account age, watchlist size, and activity
 
-### Core Features
-- **Universal Content Discovery**: Browse movies and TV shows with rich metadata
-- **Smart Search**: Advanced search capabilities with filters and sorting
-- **Personal Watchlist**: Keep track of what you want to watch
-- **Content Details**: Comprehensive information including ratings, cast, and synopsis
-- **Modern UI**: Netflix-inspired interface with smooth animations
+### 📱 Enhanced User Experience
+- **English Interface**: Complete translation from French to English
+- **Improved Navigation**: Better responsive design and navbar title display
+- **Profile Integration**: Access profile and settings from multiple locations
+- **Open Source Focused**: Removed premium/subscription elements
+
+### 🔧 Technical Improvements
+- **Cross-Platform Storage**: Local storage for web, file-based for desktop
+- **Better Responsive Design**: Fixed navbar title blocking issues
+- **Improved Footer**: Platform-aware information and open source branding
+
+## 🆕 What's New
+
+### User System Features
+- Create a local profile with name and optional email
+- Personal profile page with avatar, statistics, and preferences
+- Account management with safe profile deletion
+- User authentication state management
+- Watchlist integration with user profiles
+
+### Interface Improvements
+- Footer completely redesigned in English
+- Removed social media and premium content
+- Added platform detection (Desktop vs Web)
+- GitHub link and open source information
+- Better mobile navigation experience
+
+### Navigation Enhancements
+- Fixed navbar title display on all screen sizes
+- Improved responsive breakpoints
+- Better profile dropdown with user information
+- Seamless profile creation flow
+
+## 🛠️ Technical Details
 
 ### Platform Support
-- **Desktop Application**: Native Windows app with system integration
-- **Web Application**: Browser-based version for any platform
-- **Unified Experience**: Same features across all platforms
+- **Desktop**: Electron app with local file storage (planned)
+- **Web**: Browser-based with localStorage
+- **Cross-Platform**: Unified codebase for both platforms
 
-### Technical Highlights
-- **TMDB Integration**: Powered by The Movie Database for accurate content information
-- **Built-in Ad Blocker**: Ghostery-powered ad blocking for desktop app (blocks ads, trackers, malware)
-- **Responsive Design**: Works perfectly on all screen sizes
-- **Custom Scrollbars**: Netflix-themed UI elements
-- **Real-time Search**: Instant results as you type
-- **Persistent Settings**: Your preferences are saved locally
+### Data Storage
+- All user data stored locally on device
+- No external servers or databases required
+- Privacy-focused approach with local-only storage
+- Easy backup and restore functionality
 
-## 📦 Available Downloads
+### User Privacy
+- No registration or sign-up required
+- No data collection or tracking
+- All information stays on your device
+- Optional email field for profile completeness
 
-### Windows (64-bit)
-- **Streall-v1.0.1-Windows-Portable.zip** (~130 MB)
-  - Portable version - no installation required
-  - Simply extract and run `Streall.exe`
-  - Includes all dependencies
-  - **Built-in Ghostery Ad Blocker** - blocks ads, trackers, and malware automatically
+## 🔧 Developer Features
 
-### Web Version
-- Access directly at your deployment URL
-- No download required - runs in any modern browser
+### Enhanced Services
+- **AuthService**: Complete local user management system
+- **Settings Integration**: User preferences tied to profiles
+- **Watchlist Integration**: Personal watchlists for each user
+- **Statistics Tracking**: Account age, activity, and usage stats
 
-## 🔧 Setup Instructions
+### GitHub Actions
+- Fixed release creation permissions
+- Automated Windows and macOS builds
+- Proper artifact handling and release publishing
+
+## 🎯 Previous Features (Still Available)
+
+### Core Functionality
+- Browse movies and TV shows from TMDB
+- Personal watchlist management
+- Advanced search and filtering
+- Content details and streaming integration
+- Netflix-inspired beautiful UI
+
+### Desktop Features
+- **Ghostery Ad Blocker**: Built-in ad and tracker blocking
+- **Multiple Filter Lists**: EasyList, EasyPrivacy, uBlock Origin filters
+- **Configurable Blocking**: Ads, trackers, malware protection
+- **Real-time Protection**: Automatic filter updates
+
+### Platform Features
+- **TMDB Integration**: Rich content metadata
+- **Multiple Sources**: Various streaming providers
+- **Responsive Design**: Works on all devices
+- **Modern UI**: Netflix-inspired interface
+- **Fast Performance**: Optimized for speed
+
+## 📋 Installation
 
 ### Desktop Application
-1. Download the Windows portable package
-2. Extract the ZIP file to your desired location
-3. Run `Streall.exe`
-4. On first launch, you'll be prompted to enter your TMDB API key
+Download the Windows or macOS version from the [releases page](https://github.com/Zacxxx/streall/releases).
 
 ### Web Application
-1. Visit the web version
-2. Enter your TMDB API key when prompted
-3. Start browsing content immediately
+Visit the hosted version or run locally:
+```bash
+npm install
+npm run dev
+```
 
-### Getting a TMDB API Key
-1. Visit [TMDB](https://www.themoviedb.org/)
-2. Create a free account
-3. Go to Settings → API
-4. Request an API key (free for personal use)
-5. Copy the API key and paste it in Streall
+## 🔄 Upgrade Notes
 
-## 🎯 System Requirements
+- Existing watchlists will be preserved
+- First-time users will see profile creation prompt
+- Settings and preferences can be migrated to profiles
+- No breaking changes to existing functionality
 
-### Desktop Application
-- **OS**: Windows 10 or later (64-bit)
-- **RAM**: 4GB minimum, 8GB recommended
-- **Storage**: 200MB free space
-- **Internet**: Required for content data
+## 🐛 Bug Fixes
 
-### Web Application
-- **Browser**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
-- **Internet**: Required for functionality
+- Fixed navbar title display issues on mobile devices
+- Resolved responsive design problems
+- Improved modal scrolling and layout
+- Fixed GitHub Actions release permissions
+- Better error handling for profile operations
 
-## 🐛 Known Issues
-- macOS build not available in this release (requires macOS build environment)
-- Some advanced TMDB features may require API key with higher limits
+## 🚀 Coming Soon
 
-## 🔄 What's Next
-- macOS support in future releases
-- Linux AppImage/Flatpak packages
-- Enhanced content recommendations
-- Social features and sharing
-- Offline content caching
-
-## 💡 Feedback & Support
-This is our initial release! We'd love to hear your feedback:
-- Report issues on GitHub
-- Suggest features
-- Share your experience
+- Avatar upload functionality
+- Enhanced user preferences
+- Profile import/export features
+- Advanced statistics and insights
+- Social features (local sharing)
 
 ---
 
-**Installation Note**: The desktop application is portable and doesn't require administrator privileges. Simply extract and run!
-
-**API Usage**: Streall uses TMDB API responsibly and caches data to minimize requests. Your API key is stored locally and never shared. 
+**Note**: This is a free, open-source project. All features are available without premium subscriptions or payments. 
