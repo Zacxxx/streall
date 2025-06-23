@@ -88,9 +88,17 @@
       "public/logo-512.png",
       "public/logo.ico"
     ],
+    "extraResources": [
+      {
+        "from": "dist",
+        "to": "dist",
+        "filter": ["**/*"]
+      }
+    ],
     "icon": "public/logo.ico",
     "compression": "normal",
     "publish": null,
+    "asar": false,
     "mac": {
       "category": "public.app-category.entertainment",
       "icon": "public/logo-512.png",

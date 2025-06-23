@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const isDev = process.env.NODE_ENV === 'development';
 
 function createWindow() {
@@ -30,9 +31,38 @@ function createWindow() {
     // Open DevTools in development
     mainWindow.webContents.openDevTools();
   } else {
-    const indexPath = path.join(__dirname, '../dist/index.html');
-    console.log('Loading production file:', indexPath);
-    mainWindow.loadFile(indexPath);
+    // Try multiple possible paths for the index.html file
+    const possiblePaths = [
+      path.join(__dirname, '../dist/index.html'),           // Local build
+      path.join(__dirname, '../app.asar/dist/index.html'),  // ASAR package
+      path.join(__dirname, '../resources/dist/index.html'), // Extra resources
+      path.join(process.resourcesPath, 'dist/index.html'),  // Electron resources
+    ];
+    
+    let indexPath = null;
+         for (const tryPath of possiblePaths) {
+       if (fs.existsSync(tryPath)) {
+         indexPath = tryPath;
+         console.log('Found index.html at:', indexPath);
+         break;
+       } else {
+         console.log('Tried path (not found):', tryPath);
+       }
+     }
+    
+    if (indexPath) {
+      console.log('Loading production file:', indexPath);
+      mainWindow.loadFile(indexPath);
+    } else {
+      console.error('Could not find index.html file!');
+      console.log('Current directory:', __dirname);
+      console.log('Process resource path:', process.resourcesPath);
+      
+      // Fallback: try to load from a basic URL
+      const fallbackPath = path.join(__dirname, '../dist/index.html');
+      console.log('Attempting fallback:', fallbackPath);
+      mainWindow.loadFile(fallbackPath);
+    }
   }
 
   // Show window when ready to prevent visual flash

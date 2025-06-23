@@ -29,8 +29,22 @@ jobs:
       - name: Generate icons
         run: node scripts/generate-icon.cjs
 
+      - name: Debug build environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Working directory: $(pwd)"
+          dir dist 2>$null || echo "No dist directory yet"
+
       - name: Build Windows app
         run: npm run dist-win
+
+      - name: Debug build output
+        run: |
+          echo "=== Build completed ==="
+          dir release 2>$null || echo "No release directory"
+          dir "release\win-unpacked" 2>$null || echo "No win-unpacked directory"
+          dir "release\win-unpacked\resources" 2>$null || echo "No resources directory"
 
       - name: Create Windows portable package
         run: Compress-Archive -Path "release\win-unpacked\*" -DestinationPath "release\Streall-${{ github.ref_name }}-Windows-Portable.zip" -Force
