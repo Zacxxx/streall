@@ -271,7 +271,8 @@ function PlayerPage() {
           const urlParams = new URLSearchParams(window.location.search);
           const season = urlParams.get('s') || '1';
           const episode = urlParams.get('e') || '1';
-          url = `${baseUrl}/embedtv/${contentId}?s=${season}&e=${episode}`;
+          // Fix: Use correct 2embed URL format with & separator
+          url = `${baseUrl}/embedtv/${contentId}&s=${season}&e=${episode}`;
         }
         
         setEmbedUrl(url);
