@@ -43,3 +43,4 @@ datasets
 # Desktop app builds (Electron)
 dist-electron/
 release/
+.vercel
