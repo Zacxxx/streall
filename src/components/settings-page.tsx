@@ -153,9 +153,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto modal-scrollbar smooth-scroll pr-2">
           <div className="space-y-6">
-            {/* TMDB API Configuration - Desktop Only */}
-            {settingsService.isDesktopApp && (
-              <Card className="bg-gray-900/50 border-gray-700 p-6">
+            {/* TMDB API Configuration */}
+            <Card className="bg-gray-900/50 border-gray-700 p-6">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <Key className="w-5 h-5 text-red-500" />
@@ -263,36 +262,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
               </div>
             </Card>
-            )}
-
-            {/* Web Version Notice */}
-            {!settingsService.isDesktopApp && (
-              <Card className="bg-blue-900/20 border-blue-500/30 p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Info className="w-5 h-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-blue-300">Web Version Settings</h3>
-                  </div>
-                  <p className="text-blue-100">
-                    You're using the web version of Streall. API configuration is handled through environment variables by the developer. 
-                    The desktop version offers more customization options including personal API key management.
-                  </p>
-                  <div className="flex items-center space-x-2 text-sm text-blue-200">
-                    <span>Want more control?</span>
-                    <a 
-                      href="#" 
-                      className="text-blue-300 hover:text-blue-100 underline"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // Could add download link for desktop version
-                      }}
-                    >
-                      Try the desktop app
-                    </a>
-                  </div>
-                </div>
-              </Card>
-            )}
 
             {/* App Information */}
             <Card className="bg-gray-900/50 border-gray-700 p-6">
@@ -327,37 +296,36 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </Card>
 
             {/* Import/Export Settings */}
-            {settingsService.isDesktopApp && (
-              <Card className="bg-gray-900/50 border-gray-700 p-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Backup & Restore</h3>
+            <Card className="bg-gray-900/50 border-gray-700 p-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Backup & Restore</h3>
+                
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={exportSettings}
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Settings
+                  </Button>
                   
-                  <div className="flex space-x-3">
-                    <Button
-                      onClick={exportSettings}
-                      variant="outline"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export Settings
-                    </Button>
-                    
-                    <Button
-                      onClick={importSettings}
-                      variant="outline"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Import Settings
-                    </Button>
-                  </div>
-                  
-                  <p className="text-xs text-gray-500">
-                    Export your settings to backup your configuration or transfer to another device.
-                  </p>
+                  <Button
+                    onClick={importSettings}
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import Settings
+                  </Button>
                 </div>
-              </Card>
-            )}
+                
+                <p className="text-xs text-gray-500">
+                  Export your settings to backup your configuration or transfer to another device.
+                  {!settingsService.isDesktopApp && " Settings are stored in your browser's local storage."}
+                </p>
+              </div>
+            </Card>
           </div>
         </div>
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Play, ExternalLink, Eye, EyeOff, Check, Loader2, AlertCircle } from 'lucide-react';
+import { Play, ExternalLink, Eye, EyeOff, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { settingsService } from '../services/settings-service';
 
 interface WelcomeModalProps {
@@ -97,31 +97,38 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
                 To access our vast library of movies and TV shows, you'll need a free TMDB API key. 
                 This takes just 2 minutes and gives you access to millions of titles.
               </p>
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                <p className="text-blue-200 text-sm">
+                  <strong>Why do I need this?</strong> We use The Movie Database (TMDB) to provide 
+                  accurate movie and TV show information. Your API key ensures reliable access to 
+                  our content library and is completely free for personal use.
+                </p>
+              </div>
             </div>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button
                 onClick={openTMDBSignup}
-                className="h-12 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 justify-start"
+                className="h-12 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-500 justify-start"
                 variant="outline"
               >
                 <ExternalLink className="w-5 h-5 mr-3" />
                 <div className="text-left">
                   <div className="font-medium">New to TMDB?</div>
-                  <div className="text-sm text-neutral-400">Create free account</div>
+                  <div className="text-sm text-neutral-300">Create free account</div>
                 </div>
               </Button>
 
               <Button
                 onClick={openTMDBSettings}
-                className="h-12 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 justify-start"
+                className="h-12 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-500 justify-start"
                 variant="outline"
               >
                 <ExternalLink className="w-5 h-5 mr-3" />
                 <div className="text-left">
                   <div className="font-medium">Have an account?</div>
-                  <div className="text-sm text-neutral-400">Get your API key</div>
+                  <div className="text-sm text-neutral-300">Get your API key</div>
                 </div>
               </Button>
             </div>
@@ -238,7 +245,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
               <Button
                 onClick={onOpenSettings}
                 variant="outline"
-                className="flex-1 h-11 border-neutral-600 text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                className="flex-1 h-11 bg-neutral-800 border-neutral-500 text-white hover:bg-neutral-700 hover:border-neutral-400"
               >
                 Advanced Settings
               </Button>
@@ -246,7 +253,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
               <Button
                 onClick={onClose}
                 variant="outline"
-                className="flex-1 h-11 border-neutral-600 text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                className="flex-1 h-11 bg-neutral-800 border-neutral-500 text-white hover:bg-neutral-700 hover:border-neutral-400"
               >
                 Skip Setup
               </Button>
@@ -255,7 +262,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
             {/* Fine Print */}
             <div className="text-center">
               <p className="text-xs text-neutral-500">
-                TMDB API key is free for personal use • Your key is stored securely on your device
+                TMDB API key is free for personal use • Your key is stored securely {settingsService.isDesktopApp ? 'on your device' : 'in your browser'}
               </p>
             </div>
           </div>

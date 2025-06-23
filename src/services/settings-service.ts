@@ -35,20 +35,20 @@ class SettingsService {
 
   private loadSettings(): AppSettings {
     try {
-      if (this.isElectron) {
-        // For Electron, try to use electron-store or localStorage
-        const stored = localStorage.getItem(this.STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored) as AppSettings;
-          return { ...this.DEFAULT_SETTINGS, ...parsed };
-        }
-      } else {
-        // For web version, use environment variables
+      // Both Electron and web versions now use localStorage for settings
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as AppSettings;
+        return { ...this.DEFAULT_SETTINGS, ...parsed };
+      }
+      
+      // For web version, check if environment variable exists but still require setup
+      if (!this.isElectron && import.meta.env.VITE_TMDB_API_KEY) {
+        // Even if env var exists, still require user to set it up manually
         return {
           ...this.DEFAULT_SETTINGS,
-          tmdbApiKey: import.meta.env.VITE_TMDB_API_KEY || null,
-          isFirstLaunch: false,
-          setupCompleted: true
+          isFirstLaunch: true,
+          setupCompleted: false
         };
       }
     } catch (error) {
@@ -59,8 +59,7 @@ class SettingsService {
   }
 
   private saveSettings(): void {
-    if (!this.isElectron) return; // Don't save settings in web version
-
+    // Both web and desktop versions can now save settings
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.settings));
     } catch (error) {
@@ -70,19 +69,14 @@ class SettingsService {
 
   // Getters
   get tmdbApiKey(): string | null {
-    if (!this.isElectron && import.meta.env.VITE_TMDB_API_KEY) {
-      return import.meta.env.VITE_TMDB_API_KEY;
-    }
     return this.settings.tmdbApiKey;
   }
 
   get isFirstLaunch(): boolean {
-    if (!this.isElectron) return false; // Web version doesn't need first launch
     return this.settings.isFirstLaunch;
   }
 
   get isSetupCompleted(): boolean {
-    if (!this.isElectron) return true; // Web version is always "setup"
     return this.settings.setupCompleted && !!this.settings.tmdbApiKey;
   }
 
@@ -96,23 +90,17 @@ class SettingsService {
 
   // Setters
   setTmdbApiKey(apiKey: string): void {
-    if (!this.isElectron) return; // Can't change API key in web version
-
     this.settings.tmdbApiKey = apiKey;
     this.saveSettings();
   }
 
   completeFirstLaunch(): void {
-    if (!this.isElectron) return;
-
     this.settings.isFirstLaunch = false;
     this.settings.lastLaunch = new Date().toISOString();
     this.saveSettings();
   }
 
   completeSetup(): void {
-    if (!this.isElectron) return;
-
     this.settings.setupCompleted = true;
     this.settings.isFirstLaunch = false;
     this.settings.lastLaunch = new Date().toISOString();
@@ -157,8 +145,6 @@ class SettingsService {
 
   // Reset settings (for testing or user request)
   resetSettings(): void {
-    if (!this.isElectron) return;
-
     this.settings = { ...this.DEFAULT_SETTINGS };
     this.saveSettings();
   }

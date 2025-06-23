@@ -260,18 +260,16 @@ function MainApp() {
           // User is authenticated
         }
 
-        // Check for first-time setup (only for desktop)
-        if (settingsService.isDesktopApp) {
-          const isFirstLaunch = settingsService.isFirstLaunch
-          const isSetupComplete = settingsService.isSetupCompleted
-          
-          if (isFirstLaunch && !isSetupComplete) {
-            setShowWelcome(true)
-            setSetupRequired(true)
-          } else if (!isSetupComplete) {
-            // Not first launch but setup incomplete
-            setSetupRequired(true)
-          }
+        // Check for first-time setup (both web and desktop)
+        const isFirstLaunch = settingsService.isFirstLaunch
+        const isSetupComplete = settingsService.isSetupCompleted
+        
+        if (isFirstLaunch && !isSetupComplete) {
+          setShowWelcome(true)
+          setSetupRequired(true)
+        } else if (!isSetupComplete) {
+          // Not first launch but setup incomplete
+          setSetupRequired(true)
         }
       } catch (error) {
         console.error('Authentication error:', error)
@@ -425,22 +423,18 @@ function MainApp() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* First-time setup modals - only for desktop */}
-      {settingsService.isDesktopApp && (
-        <>
-          <WelcomeModal
-            isOpen={showWelcome}
-            onClose={handleWelcomeClose}
-            onOpenSettings={handleWelcomeOpenSettings}
-          />
-          
-          <SettingsPage
-            isOpen={showSettings}
-            onClose={handleSettingsClose}
-            onSetupComplete={handleSetupComplete}
-          />
-        </>
-      )}
+      {/* First-time setup modals - for both web and desktop */}
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={handleWelcomeClose}
+        onOpenSettings={handleWelcomeOpenSettings}
+      />
+      
+      <SettingsPage
+        isOpen={showSettings}
+        onClose={handleSettingsClose}
+        onSetupComplete={handleSetupComplete}
+      />
 
       {/* Setup Required Warning */}
       {setupRequired && !showWelcome && !showSettings && (

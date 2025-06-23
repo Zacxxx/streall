@@ -64,6 +64,7 @@
     "fs-extra": "^11.3.0",
     "globals": "^16.0.0",
     "postcss": "^8.5.6",
+    "sharp": "^0.34.2",
     "tailwindcss": "^3.4.15",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
@@ -74,17 +75,20 @@
     "appId": "com.streall.app",
     "productName": "Streall",
     "directories": {
-      "output": "dist-electron"
+      "output": "release"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "public/logo-256.png"
     ],
+    "icon": "public/logo-256.png",
     "compression": "normal",
     "publish": null,
     "mac": {
       "category": "public.app-category.entertainment",
+      "icon": "public/logo-256.png",
       "target": [
         {
           "target": "dmg",
@@ -96,15 +100,17 @@
       ]
     },
     "win": {
+      "icon": "public/logo-256.png",
       "target": [
         {
-          "target": "portable",
+          "target": "dir",
           "arch": [
             "x64"
           ]
         }
       ],
-      "forceCodeSigning": false
+      "forceCodeSigning": false,
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,

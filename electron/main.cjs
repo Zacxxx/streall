@@ -13,7 +13,7 @@ function createWindow() {
       enableRemoteModule: false,
       webSecurity: true
     },
-    icon: path.join(__dirname, '../public/logo.svg'), // App icon
+    icon: path.join(__dirname, '../public/logo-256.png'), // App icon
     titleBarStyle: 'default',
     show: false // Don't show until ready
   });
