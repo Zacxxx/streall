@@ -321,7 +321,7 @@ export function ContentRows() {
             Can't find what you're looking for?
           </h3>
           <p className="text-slate-400 mb-8 text-lg">
-            Use our advanced search to discover content across all genres and platforms
+            
           </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -329,7 +329,7 @@ export function ContentRows() {
             onClick={() => navigate('/search')}
             className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
           >
-            Explore Advanced Search
+            Search for it!
           </motion.button>
         </div>
       </motion.div>

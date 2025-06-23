@@ -9,6 +9,7 @@ import { RedirectFollower } from '@/utils/redirect-follower';
 import { RealStreamExtractor } from '@/utils/real-stream-extractor';
 import { DirectStreamUrls } from '@/utils/direct-stream-urls';
 import { DynamicStreamCapture } from '@/utils/dynamic-stream-capture';
+import { SubtitleOverlay } from './subtitle-overlay';
 
 // Extend Window interface to include our custom function
 declare global {
@@ -22,6 +23,8 @@ interface CustomVideoPlayerProps {
   title: string;
   onBack?: () => void;
   onExtractStreams?: () => void;
+  subtitlesVisible?: boolean;
+  hasSubtitles?: boolean;
 }
 
 interface StreamData {
@@ -29,7 +32,7 @@ interface StreamData {
   currentSource: StreamSource | null;
 }
 
-export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomVideoPlayerProps) {
+export function CustomVideoPlayer({ embedUrl, title, onExtractStreams, subtitlesVisible, hasSubtitles }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -47,43 +50,65 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomV
   const extractStreamUrl = async (embedUrl: string): Promise<StreamData | null> => {
     try {
       setIsLoading(true);
-      console.log('🔍 Extracting real stream URLs from:', embedUrl);
+      console.log('🔍 Enhanced 2embed.cc extraction from:', embedUrl);
 
-      // Extract TMDB ID from embed URL
+      // Step 1: Use our enhanced StreamExtractor for 2embed.cc
+      console.log('🎬 Using enhanced 2embed.cc extraction...');
+      const extractedStreams = await StreamExtractor.extractStreamsFromUrl(embedUrl);
+      
+      if (extractedStreams && extractedStreams.sources.length > 0) {
+        console.log(`✅ Enhanced extraction found ${extractedStreams.sources.length} stream sources`);
+        console.log('🎯 Stream sources:', extractedStreams.sources);
+        
+        // Convert to our StreamData format
+        const sources: StreamSource[] = extractedStreams.sources.map((stream, index) => ({
+          url: stream.url,
+          type: stream.type,
+          quality: stream.quality || 'auto',
+          label: stream.label || `Stream ${index + 1}`
+        }));
+        
+        const sortedSources = StreamExtractor.sortSourcesByPreference(sources);
+        return {
+          sources: sortedSources,
+          currentSource: sortedSources[0] || null
+        };
+      }
+
+      // Step 2: Fallback to dynamic capture if available
+      console.log('🔄 Fallback: Using dynamic stream capture...');
+      const dynamicResult = await DynamicStreamCapture.captureRealStreams(embedUrl);
+      
+      if (dynamicResult.success && dynamicResult.streams.length > 0) {
+        console.log(`✅ Dynamic capture found ${dynamicResult.streams.length} real stream URLs`);
+        console.log('🎯 Captured streams:', dynamicResult.streams);
+        
+        // Sort streams by preference
+        const sortedDynamicStreams = DynamicStreamCapture.sortStreamsByPreference(dynamicResult.streams);
+        
+        // Convert to StreamSource format with proper type handling
+        const sources: StreamSource[] = sortedDynamicStreams.map((stream) => ({
+          url: stream.url,
+          type: stream.type as StreamSource['type'], // Type assertion since we know it's compatible
+          quality: stream.quality,
+          label: `${stream.type.toUpperCase()} - ${stream.quality}`
+        }));
+        
+        return {
+          sources: sources,
+          currentSource: sources[0] || null
+        };
+      }
+
+      // Step 3: Extract TMDB ID and use direct stream URLs based on HAR analysis
       const tmdbIdMatch = embedUrl.match(/\/(\d+)$/);
       if (tmdbIdMatch) {
         const tmdbId = tmdbIdMatch[1];
         if (!tmdbId) {
           throw new Error('Invalid TMDB ID extracted from URL');
         }
-        console.log('🎬 Using TMDB ID:', tmdbId);
+        console.log('🎬 Using TMDB ID for direct stream URLs:', tmdbId);
 
-        // Primary method: Dynamic stream capture with real browser interaction
-        console.log('🎬 Using dynamic stream capture (real browser interaction)...');
-        const dynamicResult = await DynamicStreamCapture.captureRealStreams(embedUrl);
-        
-        if (dynamicResult.success && dynamicResult.streams.length > 0) {
-          console.log(`✅ Dynamic capture found ${dynamicResult.streams.length} real stream URLs`);
-          console.log('🎯 Captured streams:', dynamicResult.streams);
-          
-          // Sort streams by preference
-          const sortedDynamicStreams = DynamicStreamCapture.sortStreamsByPreference(dynamicResult.streams);
-          
-          // Convert to StreamSource format with proper type handling
-          const sources: StreamSource[] = sortedDynamicStreams.map((stream) => ({
-            url: stream.url,
-            type: stream.type as StreamSource['type'], // Type assertion since we know it's compatible
-            quality: stream.quality,
-            label: `${stream.type.toUpperCase()} - ${stream.quality}`
-          }));
-          
-          return {
-            sources: sources,
-            currentSource: sources[0] || null
-          };
-        }
-
-        // Fallback: Use direct stream URLs based on HAR analysis
         console.log('🔄 Fallback: Using direct stream URLs from HAR analysis...');
         const directStreams = await DirectStreamUrls.getWorkingStreams(tmdbId, 'movie');
         
@@ -107,7 +132,7 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomV
           };
         }
 
-        // Fallback: Use the real stream extractor with iframe monitoring
+        // Step 4: Use the real stream extractor with iframe monitoring
         console.log('🔄 Fallback: Using real streaming infrastructure...');
         const providerResults = await RealStreamExtractor.extractFromTMDBId(tmdbId, 'movie');
         
@@ -135,7 +160,7 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomV
         }
       }
 
-      // Fallback: try redirect following to get actual streaming provider
+      // Step 5: Fallback to redirect following
       console.log('🔗 Fallback: Following redirect chain...');
       const redirectChain = await RedirectFollower.followRedirectChain(embedUrl);
       
@@ -161,8 +186,8 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomV
         };
       }
       
-      // Fallback: try the hybrid capture method (works around CORS restrictions)
-      console.log('🎬 Trying hybrid network capture method...');
+      // Step 6: Final fallback - hybrid capture method
+      console.log('🎬 Final fallback: Using hybrid network capture method...');
       const capturedStreams = await StreamCapture.captureStreamsFromEmbed(embedUrl);
       
       if (capturedStreams.length > 0) {
@@ -175,8 +200,8 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomV
         };
       }
       
-      // Fallback to JavaScript injection method
-      console.log('🎬 Trying JavaScript injection method...');
+      // Step 7: Last resort - JavaScript injection method
+      console.log('🎬 Last resort: Using JavaScript injection method...');
       const injectedStreams = await StreamInjector.extractStreamsWithInjection(embedUrl);
       
       if (injectedStreams.length > 0) {
@@ -197,28 +222,13 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomV
         };
       }
 
-      // Fallback to static HTML extraction
-      console.log('⚠️ JavaScript injection failed, trying static extraction...');
-      const extractedStreams = await StreamExtractor.extractStreamsFromUrl(embedUrl);
-      
-      if (!extractedStreams || extractedStreams.sources.length === 0) {
-        console.log('❌ No streams found with any method');
-        return null;
-      }
+      console.log('❌ All extraction methods failed');
+      return null;
 
-      // Sort sources by preference
-      const sortedSources = StreamExtractor.sortSourcesByPreference(extractedStreams.sources);
-      console.log('🎯 Found and sorted streams:', sortedSources);
-
-      return {
-        sources: sortedSources,
-        currentSource: sortedSources[0] || null
-      };
     } catch (error) {
       console.error('❌ Error extracting stream URL:', error);
+      setError(`Stream extraction failed: ${error}`);
       return null;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -421,6 +431,13 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomV
           crossOrigin="anonymous"
         />
         
+        {/* Subtitle Overlay */}
+        <SubtitleOverlay 
+          isVisible={true}
+          subtitlesVisible={subtitlesVisible}
+          hasSubtitles={hasSubtitles}
+        />
+        
         {showControls && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
             <div className="flex items-center gap-4 mb-2">
@@ -518,6 +535,57 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomV
         allowFullScreen
         allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
         title={title}
+      />
+      
+      {/* Enhanced Try Direct Stream Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <Button
+          onClick={async () => {
+            console.log('🎯 Trying direct stream extraction...');
+            const streamData = await extractStreamUrl(embedUrl);
+            if (streamData && streamData.currentSource) {
+              setStreamData(streamData);
+              setUseDirectStream(true);
+              console.log('✅ Switched to direct stream mode');
+            } else {
+              console.log('❌ Direct stream extraction failed, staying with iframe');
+              setError('Could not extract direct stream. The iframe will continue to work.');
+              // Clear error after 5 seconds
+              setTimeout(() => setError(null), 5000);
+            }
+          }}
+          variant="outline"
+          size="sm"
+          className="bg-green-900/80 hover:bg-green-800/90 text-white border-green-400 hover:border-green-300 backdrop-blur-sm"
+        >
+          🎯 Try Direct Stream
+        </Button>
+      </div>
+
+      {/* Error Toast */}
+      {error && (
+        <div className="absolute top-4 left-4 right-4 z-20">
+          <div className="bg-red-900/90 border border-red-600 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">{error}</span>
+              <Button
+                onClick={() => setError(null)}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-red-800/50 ml-2 h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Subtitle Overlay */}
+      <SubtitleOverlay 
+        isVisible={true}
+        subtitlesVisible={subtitlesVisible}
+        hasSubtitles={hasSubtitles}
       />
     </div>
   );

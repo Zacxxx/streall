@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2embed.cc Live Stream Extraction Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+        .test-section {
+            background: #2d2d2d;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #4a5568;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .loading {
+            color: #ffa500;
+            font-weight: bold;
+        }
+        .success {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .info {
+            color: #2196f3;
+            font-weight: bold;
+        }
+        .stream-url {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .results-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .iframe-container {
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            margin: 10px 0;
+            background: #1a1a1a;
+        }
+        iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+            border-radius: 6px;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+        .step-title {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .progress {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        input[type="text"] {
+            background: #1a1a1a;
+            border: 1px solid #555;
+            color: #e0e0e0;
+            padding: 10px;
+            border-radius: 5px;
+            flex: 1;
+            min-width: 300px;
+        }
+        .url-input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎬 2embed.cc Live Stream Extraction Test</h1>
+        <p>Enhanced extraction for 2embed.cc → 2embed.skin workflow</p>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Configuration</h2>
+        <div class="url-input-container">
+            <input type="text" id="embedUrl" placeholder="Enter 2embed.cc URL..." 
+                   value="https://www.2embed.cc/embed/574475">
+            <button onclick="updateUrl()">Update URL</button>
+        </div>
+        <div class="controls">
+            <button onclick="testRedirectFlow()">🔗 Test Redirect Flow</button>
+            <button onclick="testStreamExtraction()">🎯 Test Stream Extraction</button>
+            <button onclick="testIframeAnalysis()">📺 Test Iframe Analysis</button>
+            <button onclick="testNetworkCapture()">🌐 Test Network Capture</button>
+            <button onclick="runFullTest()">🚀 Run Full Test Suite</button>
+            <button onclick="clearResults()">🧹 Clear Results</button>
+        </div>
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Test Results</h2>
+        <div class="results-container" id="resultsContainer">
+            <p class="info">Ready to test 2embed.cc stream extraction...</p>
+        </div>
+    </div>
+
+    <div class="test-section" id="iframeSection" style="display: none;">
+        <h2>📺 Live iframe Analysis</h2>
+        <div class="iframe-container">
+            <iframe id="testIframe" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUrl = 'https://www.2embed.cc/embed/574475';
+        let testResults = [];
+
+        // Enhanced Stream Extractor for 2embed.cc
+        class Enhanced2EmbedExtractor {
+            static async extractFromUrl(embedUrl) {
+                const results = {
+                    method: 'Enhanced 2embed.cc Extraction',
+                    steps: [],
+                    sources: [],
+                    success: false
+                };
+
+                try {
+                    // Step 1: Follow redirect to 2embed.skin
+                    results.steps.push({ step: 'Following redirect to 2embed.skin', status: 'running' });
+                    const skinUrl = await this.follow2EmbedRedirect(embedUrl);
+                    
+                    if (skinUrl) {
+                        results.steps.push({ step: 'Redirect followed successfully', status: 'success', data: skinUrl });
+                        
+                        // Step 2: Analyze 2embed.skin page
+                        results.steps.push({ step: 'Analyzing 2embed.skin page', status: 'running' });
+                        const skinStreams = await this.extractFrom2EmbedSkin(skinUrl);
+                        
+                        if (skinStreams.length > 0) {
+                            results.steps.push({ step: 'Found streams on skin page', status: 'success', data: skinStreams });
+                            results.sources.push(...skinStreams);
+                        } else {
+                            results.steps.push({ step: 'No streams found on skin page', status: 'warning' });
+                        }
+                    } else {
+                        results.steps.push({ step: 'Redirect following failed', status: 'error' });
+                    }
+
+                    // Step 3: Iframe analysis
+                    results.steps.push({ step: 'Analyzing iframes for streams', status: 'running' });
+                    const iframeStreams = await this.analyzeIframes(embedUrl);
+                    
+                    if (iframeStreams.length > 0) {
+                        results.steps.push({ step: 'Found streams in iframes', status: 'success', data: iframeStreams });
+                        results.sources.push(...iframeStreams);
+                    } else {
+                        results.steps.push({ step: 'No streams found in iframes', status: 'warning' });
+                    }
+
+                    // Step 4: Pattern-based extraction
+                    results.steps.push({ step: 'Running pattern-based extraction', status: 'running' });
+                    const patternStreams = await this.extractWithPatterns(embedUrl);
+                    
+                    if (patternStreams.length > 0) {
+                        results.steps.push({ step: 'Found streams with patterns', status: 'success', data: patternStreams });
+                        results.sources.push(...patternStreams);
+                    } else {
+                        results.steps.push({ step: 'No streams found with patterns', status: 'warning' });
+                    }
+
+                    // Remove duplicates and sort
+                    results.sources = this.removeDuplicates(results.sources);
+                    results.sources = this.sortByPreference(results.sources);
+                    results.success = results.sources.length > 0;
+
+                } catch (error) {
+                    results.steps.push({ step: 'Extraction failed', status: 'error', error: error.message });
+                }
+
+                return results;
+            }
+
+            static async follow2EmbedRedirect(embedUrl) {
+                try {
+                    const response = await fetch(embedUrl, {
+                        method: 'GET',
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        },
+                        mode: 'cors',
+                        redirect: 'follow'
+                    });
+
+                    // Check if redirected to 2embed.skin
+                    if (response.url.includes('2embed.skin')) {
+                        return response.url;
+                    }
+
+                    // Look for redirect patterns in HTML
+                    const html = await response.text();
+                    const redirectPatterns = [
+                        /window\.location\.href\s*=\s*["']([^"']*2embed\.skin[^"']*)["']/gi,
+                        /location\.href\s*=\s*["']([^"']*2embed\.skin[^"']*)["']/gi,
+                        /href\s*=\s*["']([^"']*2embed\.skin[^"']*movie\/\d+[^"']*)["']/gi,
+                    ];
+
+                    for (const pattern of redirectPatterns) {
+                        const match = html.match(pattern);
+                        if (match && match[1]) {
+                            const url = match[1].startsWith('http') ? match[1] : `https:${match[1]}`;
+                            return url;
+                        }
+                    }
+
+                    return null;
+                } catch (error) {
+                    console.error('Error following redirect:', error);
+                    return null;
+                }
+            }
+
+            static async extractFrom2EmbedSkin(skinUrl) {
+                try {
+                    const response = await fetch(skinUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            'Referer': 'https://www.2embed.cc/',
+                        }
+                    });
+
+                    const html = await response.text();
+                    const sources = [];
+
+                    // Enhanced patterns for 2embed.skin
+                    const streamPatterns = [
+                        /(?:source|file|src|url)\s*:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
+                        /(?:source|file|src|url)\s*:\s*["']([^"']*\.mp4[^"']*)["']/gi,
+                        /["']([^"']*\.m3u8[^"']*)["']/g,
+                        /["']([^"']*\.mp4[^"']*)["']/g,
+                        /https?:\/\/[^"'\s]*(?:stream|play|video|vsrc)[^"'\s]*(?:\.m3u8|\.mp4)?/gi,
+                    ];
+
+                    for (const pattern of streamPatterns) {
+                        const matches = Array.from(html.matchAll(pattern));
+                        for (const match of matches) {
+                            const url = match[1] || match[0];
+                            if (url && this.isValidStreamUrl(url)) {
+                                sources.push({
+                                    url: url.trim(),
+                                    type: this.detectStreamType(url),
+                                    quality: 'auto',
+                                    method: '2embed.skin extraction'
+                                });
+                            }
+                        }
+                    }
+
+                    return sources;
+                } catch (error) {
+                    console.error('Error extracting from skin:', error);
+                    return [];
+                }
+            }
+
+            static async analyzeIframes(embedUrl) {
+                const sources = [];
+                
+                try {
+                    // This would normally use Puppeteer, but for browser testing we'll simulate
+                    // iframe analysis based on common patterns and network requests
+                    
+                    // Generate potential iframe URLs based on common 2embed.cc patterns
+                    const tmdbId = embedUrl.match(/\/(\d+)$/)?.[1];
+                    if (tmdbId) {
+                        const potentialIframes = [
+                            `https://streamsrcs.2embed.cc/hnszpnmex8h4?embed=1&referer=2embed.cc&adb=1&hls4=1`,
+                            `https://vsrc.2embed.cc/movie/${tmdbId}`,
+                            `https://play.2embed.cc/movie/${tmdbId}`,
+                            `https://2embed.skin/embed/movie/${tmdbId}`,
+                        ];
+
+                        for (const iframeUrl of potentialIframes) {
+                            try {
+                                const response = await fetch(iframeUrl, {
+                                    headers: {
+                                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                                        'Referer': 'https://www.2embed.cc/',
+                                    }
+                                });
+
+                                if (response.ok) {
+                                    const content = await response.text();
+                                    const iframeStreams = this.extractDirectStreamUrls(content);
+                                    if (iframeStreams.length > 0) {
+                                        sources.push(...iframeStreams.map(stream => ({
+                                            ...stream,
+                                            method: `iframe analysis: ${iframeUrl}`
+                                        })));
+                                    }
+                                }
+                            } catch (e) {
+                                // Continue to next iframe
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error in iframe analysis:', error);
+                }
+
+                return sources;
+            }
+
+            static async extractWithPatterns(embedUrl) {
+                const sources = [];
+                
+                try {
+                    const response = await fetch(embedUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        }
+                    });
+
+                    const html = await response.text();
+                    const extractedSources = this.extractDirectStreamUrls(html);
+                    
+                    sources.push(...extractedSources.map(stream => ({
+                        ...stream,
+                        method: 'pattern extraction'
+                    })));
+
+                } catch (error) {
+                    console.error('Error in pattern extraction:', error);
+                }
+
+                return sources;
+            }
+
+            static extractDirectStreamUrls(html) {
+                const sources = [];
+                
+                const streamPatterns = [
+                    /(?:source|file|src|url)\s*:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
+                    /(?:source|file|src|url)\s*:\s*["']([^"']*\.mp4[^"']*)["']/gi,
+                    /["']([^"']*\.m3u8[^"']*)["']/g,
+                    /["']([^"']*\.mp4[^"']*)["']/g,
+                    /https?:\/\/[^"'\s]*(?:stream|play|video|vsrc)[^"'\s]*(?:\.m3u8|\.mp4)?/gi,
+                ];
+
+                for (const pattern of streamPatterns) {
+                    const matches = Array.from(html.matchAll(pattern));
+                    for (const match of matches) {
+                        const url = match[1] || match[0];
+                        if (url && this.isValidStreamUrl(url)) {
+                            sources.push({
+                                url: url.trim(),
+                                type: this.detectStreamType(url),
+                                quality: 'auto',
+                                label: 'Direct extraction'
+                            });
+                        }
+                    }
+                }
+
+                return sources;
+            }
+
+            static isValidStreamUrl(url) {
+                if (!url || typeof url !== 'string') return false;
+                
+                const skipPatterns = [
+                    'javascript:', 'data:', '.css', '.js', '.png', '.jpg', '.svg', '.ico',
+                    'google', 'facebook', 'twitter', 'whos.amung.us'
+                ];
+                
+                for (const pattern of skipPatterns) {
+                    if (url.includes(pattern)) return false;
+                }
+                
+                return url.startsWith('http') && (
+                    url.includes('stream') || url.includes('play') || url.includes('video') ||
+                    url.includes('embed') || url.includes('.m3u8') || url.includes('.mp4') ||
+                    url.includes('vsrc') || url.length > 30
+                );
+            }
+
+            static detectStreamType(url) {
+                if (url.includes('.m3u8')) return 'hls';
+                if (url.includes('.mp4')) return 'mp4';
+                if (url.includes('.webm')) return 'webm';
+                if (url.includes('.mpd')) return 'dash';
+                return 'unknown';
+            }
+
+            static removeDuplicates(sources) {
+                const seen = new Set();
+                return sources.filter(source => {
+                    const key = `${source.url}-${source.type}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+            }
+
+            static sortByPreference(sources) {
+                const typeOrder = { 'hls': 1, 'mp4': 2, 'webm': 3, 'dash': 4, 'unknown': 5 };
+                return sources.sort((a, b) => (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5));
+            }
+        }
+
+        // UI Functions
+        function updateUrl() {
+            currentUrl = document.getElementById('embedUrl').value;
+            log('info', `Updated URL to: ${currentUrl}`);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+        }
+
+        function log(type, message, data = null) {
+            const container = document.getElementById('resultsContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let html = `<div class="${type}">
+                [${timestamp}] ${message}
+            `;
+            
+            if (data) {
+                if (typeof data === 'object') {
+                    html += `<div class="stream-url">${JSON.stringify(data, null, 2)}</div>`;
+                } else {
+                    html += `<div class="stream-url">${data}</div>`;
+                }
+            }
+            
+            html += '</div>';
+            container.innerHTML += html;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('resultsContainer').innerHTML = 
+                '<p class="info">Ready to test 2embed.cc stream extraction...</p>';
+            updateProgress(0);
+        }
+
+        // Test Functions
+        async function testRedirectFlow() {
+            log('info', '🔗 Testing redirect flow from 2embed.cc to 2embed.skin...');
+            updateProgress(25);
+
+            try {
+                const skinUrl = await Enhanced2EmbedExtractor.follow2EmbedRedirect(currentUrl);
+                if (skinUrl) {
+                    log('success', '✅ Redirect successful!', skinUrl);
+                } else {
+                    log('error', '❌ Redirect failed - no 2embed.skin URL found');
+                }
+            } catch (error) {
+                log('error', '❌ Redirect test failed', error.message);
+            }
+
+            updateProgress(100);
+        }
+
+        async function testStreamExtraction() {
+            log('info', '🎯 Testing enhanced stream extraction...');
+            updateProgress(25);
+
+            try {
+                const results = await Enhanced2EmbedExtractor.extractFromUrl(currentUrl);
+                
+                updateProgress(50);
+                log('info', `📊 Extraction completed with ${results.sources.length} sources found`);
+                
+                results.steps.forEach(step => {
+                    const icon = step.status === 'success' ? '✅' : 
+                                step.status === 'error' ? '❌' : 
+                                step.status === 'warning' ? '⚠️' : '🔄';
+                    log(step.status, `${icon} ${step.step}`, step.data || step.error);
+                });
+
+                updateProgress(75);
+
+                if (results.sources.length > 0) {
+                    log('success', `🎬 Found ${results.sources.length} stream sources:`);
+                    results.sources.forEach((source, index) => {
+                        log('success', `   ${index + 1}. [${source.type.toUpperCase()}] ${source.method}`, source.url);
+                    });
+                } else {
+                    log('error', '❌ No streams found with enhanced extraction');
+                }
+
+            } catch (error) {
+                log('error', '❌ Stream extraction failed', error.message);
+            }
+
+            updateProgress(100);
+        }
+
+        async function testIframeAnalysis() {
+            log('info', '📺 Testing iframe analysis...');
+            document.getElementById('iframeSection').style.display = 'block';
+            
+            const iframe = document.getElementById('testIframe');
+            iframe.src = currentUrl;
+            
+            // Monitor iframe for network requests (limited in browser context)
+            setTimeout(() => {
+                try {
+                    // In a real scenario, this would capture network traffic
+                    // For demo purposes, we'll show the iframe source
+                    log('info', '📺 Iframe loaded:', iframe.src);
+                    log('info', '🔍 In a full implementation, this would capture network requests from the iframe');
+                } catch (error) {
+                    log('error', '❌ Iframe analysis limited by CORS policy');
+                }
+            }, 3000);
+        }
+
+        async function testNetworkCapture() {
+            log('info', '🌐 Testing network capture simulation...');
+            
+            // Simulate network request analysis
+            log('info', '🔍 Simulating network request capture...');
+            log('info', '📊 In a real implementation, this would use Service Workers or browser extensions');
+            log('info', '🎯 Common 2embed.cc network patterns:');
+            log('info', '   - Requests to streamsrcs.2embed.cc');
+            log('info', '   - Requests to vsrc.2embed.cc');
+            log('info', '   - HLS (.m3u8) manifest files');
+            log('info', '   - MP4 video segments');
+        }
+
+        async function runFullTest() {
+            log('info', '🚀 Running full test suite...');
+            updateProgress(0);
+
+            await testRedirectFlow();
+            updateProgress(25);
+            
+            await testStreamExtraction();
+            updateProgress(50);
+            
+            await testIframeAnalysis();
+            updateProgress(75);
+            
+            await testNetworkCapture();
+            updateProgress(100);
+
+            log('success', '🎉 Full test suite completed!');
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            log('info', '🎬 2embed.cc Live Stream Extraction Test Ready');
+            log('info', 'This tool tests enhanced extraction methods for the 2embed.cc → 2embed.skin workflow');
+        });
+    </script>
+</body>
+</html> 
