@@ -3,21 +3,16 @@ import {
   Play, 
   Heart, 
   Star, 
-  Download, 
   Settings, 
   User, 
-  LogOut, 
-  Shield, 
   HelpCircle, 
-  Mail, 
-  Github, 
-  Twitter, 
-  Instagram,
-  Sparkles,
-  Crown,
-  Zap
+  Github,
+  Code,
+  Globe,
+  Monitor
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { settingsService } from '@/services/settings-service';
 
 interface FooterProps {
   onProfileClick?: () => void;
@@ -41,10 +36,12 @@ export function Footer({
   isAuthenticated = false,
   userProfile
 }: FooterProps) {
+  const isDesktop = settingsService.isDesktopApp;
+  
   return (
     <footer className="relative bg-gradient-to-t from-slate-950 via-slate-900 to-slate-800 border-t border-slate-700/50">
       {/* Decorative gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-900/10 via-transparent to-orange-900/10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-900/10 via-transparent to-red-900/10" />
       
       <div className="relative max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -52,101 +49,105 @@ export function Footer({
           {/* Brand Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
                 <Play className="w-5 h-5 text-white fill-current" />
               </div>
               <span className="text-2xl font-bold text-white">Streall</span>
             </div>
             
             <p className="text-slate-400 text-sm leading-relaxed">
-              Votre plateforme de streaming ultime. Découvrez des milliers de films et séries en haute qualité.
+              Free, open-source streaming content browser. Discover movies and TV shows from multiple sources.
             </p>
             
-            {/* Social Links */}
-            <div className="flex items-center gap-3">
-              <button className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                <Twitter className="w-4 h-4" />
-              </button>
-              <button className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                <Instagram className="w-4 h-4" />
-              </button>
-              <button className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-                <Github className="w-4 h-4" />
-              </button>
+            {/* Platform Info */}
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              {isDesktop ? (
+                <>
+                  <Monitor className="w-4 h-4" />
+                  <span>Desktop Application</span>
+                </>
+              ) : (
+                <>
+                  <Globe className="w-4 h-4" />
+                  <span>Web Application</span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Navigation */}
           <div className="space-y-4">
             <h3 className="text-white font-semibold text-lg">Navigation</h3>
             <ul className="space-y-2">
               <li>
                 <button className="text-slate-400 hover:text-white transition-colors text-sm flex items-center gap-2">
                   <Play className="w-4 h-4" />
-                  Accueil
+                  Home
                 </button>
               </li>
               <li>
                 <button className="text-slate-400 hover:text-white transition-colors text-sm flex items-center gap-2">
                   <Star className="w-4 h-4" />
-                  Tendances
+                  Browse
                 </button>
               </li>
               <li>
                 <button className="text-slate-400 hover:text-white transition-colors text-sm flex items-center gap-2">
                   <Heart className="w-4 h-4" />
-                  Ma Liste
-                </button>
-              </li>
-              <li>
-                <button className="text-slate-400 hover:text-white transition-colors text-sm flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Téléchargements
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div className="space-y-4">
-            <h3 className="text-white font-semibold text-lg">Support</h3>
-            <ul className="space-y-2">
-              <li>
-                <button className="text-slate-400 hover:text-white transition-colors text-sm flex items-center gap-2">
-                  <HelpCircle className="w-4 h-4" />
-                  Centre d'aide
-                </button>
-              </li>
-              <li>
-                <button className="text-slate-400 hover:text-white transition-colors text-sm flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Contact
-                </button>
-              </li>
-              <li>
-                <button className="text-slate-400 hover:text-white transition-colors text-sm flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Confidentialité
+                  My List
                 </button>
               </li>
               <li>
                 <button className="text-slate-400 hover:text-white transition-colors text-sm flex items-center gap-2">
                   <Settings className="w-4 h-4" />
-                  Conditions
+                  Settings
                 </button>
               </li>
             </ul>
           </div>
 
+          {/* Features */}
+          <div className="space-y-4">
+            <h3 className="text-white font-semibold text-lg">Features</h3>
+            <ul className="space-y-2">
+              <li>
+                <span className="text-slate-400 text-sm flex items-center gap-2">
+                  <Code className="w-4 h-4" />
+                  Open Source
+                </span>
+              </li>
+              <li>
+                <span className="text-slate-400 text-sm flex items-center gap-2">
+                  <Heart className="w-4 h-4" />
+                  Personal Watchlist
+                </span>
+              </li>
+              <li>
+                <span className="text-slate-400 text-sm flex items-center gap-2">
+                  <Star className="w-4 h-4" />
+                  TMDB Integration
+                </span>
+              </li>
+              {isDesktop && (
+                <li>
+                  <span className="text-slate-400 text-sm flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Built-in Ad Blocker
+                  </span>
+                </li>
+              )}
+            </ul>
+          </div>
+
           {/* User Profile / Authentication */}
           <div className="space-y-4">
-            <h3 className="text-white font-semibold text-lg">Compte</h3>
+            <h3 className="text-white font-semibold text-lg">Account</h3>
             
             {isAuthenticated && userProfile ? (
               <div className="space-y-4">
                 {/* User Info */}
                 <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-orange-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
                     {userProfile.avatar ? (
                       <img 
                         src={userProfile.avatar} 
@@ -158,33 +159,14 @@ export function Footer({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-white font-medium text-sm truncate">
-                        {userProfile.name}
-                      </p>
-                      {userProfile.isPremium && (
-                        <Crown className="w-4 h-4 text-yellow-400" />
-                      )}
-                    </div>
+                    <p className="text-white font-medium text-sm truncate">
+                      {userProfile.name}
+                    </p>
                     <p className="text-slate-400 text-xs truncate">
-                      {userProfile.email}
+                      Local Profile
                     </p>
                   </div>
                 </div>
-
-                {/* Premium Badge */}
-                {userProfile.isPremium && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-2 p-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30"
-                  >
-                    <Sparkles className="w-4 h-4 text-yellow-400" />
-                    <span className="text-yellow-400 text-xs font-medium">
-                      Membre Premium
-                    </span>
-                  </motion.div>
-                )}
 
                 {/* Action Buttons */}
                 <div className="space-y-2">
@@ -195,7 +177,7 @@ export function Footer({
                     className="w-full bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700/50 hover:text-white"
                   >
                     <User className="w-4 h-4 mr-2" />
-                    Mon Profil
+                    Profile
                   </Button>
                   
                   <Button
@@ -205,65 +187,30 @@ export function Footer({
                     className="w-full bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700/50 hover:text-white"
                   >
                     <Settings className="w-4 h-4 mr-2" />
-                    Paramètres
-                  </Button>
-                  
-                  <Button
-                    onClick={onLogoutClick}
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/50"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Déconnexion
+                    Settings
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-slate-400 text-sm">
-                  Connectez-vous pour accéder à vos favoris et recommandations personnalisées.
+                  Create a local profile to save your watchlist and preferences.
                 </p>
                 
                 <div className="space-y-2">
                   <Button
                     onClick={onLoginClick}
-                    className="w-full bg-gradient-to-r from-blue-600 to-orange-600 hover:from-blue-700 hover:to-orange-700 text-white font-medium"
+                    className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium"
                   >
                     <User className="w-4 h-4 mr-2" />
-                    Se connecter
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-slate-800/50 border-slate-600 text-slate-300 hover:bg-slate-700/50 hover:text-white"
-                  >
-                    Créer un compte
+                    Create Profile
                   </Button>
                 </div>
 
-                {/* Premium Teaser */}
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="p-3 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-500/20 cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Crown className="w-4 h-4 text-yellow-400" />
-                    <span className="text-yellow-400 font-medium text-sm">
-                      Streall Premium
-                    </span>
-                  </div>
-                  <p className="text-slate-300 text-xs leading-relaxed">
-                    Accès illimité, qualité 4K, pas de publicité
-                  </p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <Zap className="w-3 h-3 text-yellow-400" />
-                    <span className="text-yellow-400 text-xs font-medium">
-                      Essai gratuit 7 jours
-                    </span>
-                  </div>
-                </motion.div>
+                <div className="text-xs text-slate-500">
+                  <p>✨ No registration required</p>
+                  <p>🔒 All data stored locally</p>
+                </div>
               </div>
             )}
           </div>
@@ -273,22 +220,25 @@ export function Footer({
         <div className="mt-12 pt-8 border-t border-slate-700/50">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6 text-sm text-slate-400">
-              <span>© 2024 Streall. Tous droits réservés.</span>
+              <span>© 2024 Streall - Open Source Project</span>
               <span className="hidden md:inline">•</span>
-              <span className="hidden md:inline">Version 2.1.0</span>
+              <span className="hidden md:inline">Version {settingsService.appVersion}</span>
             </div>
             
             <div className="flex items-center gap-4 text-sm text-slate-400">
-              <button className="hover:text-white transition-colors">
-                Politique de confidentialité
-              </button>
+              <a 
+                href="https://github.com/streall/streall" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors flex items-center gap-1"
+              >
+                <Github className="w-4 h-4" />
+                GitHub
+              </a>
               <span>•</span>
-              <button className="hover:text-white transition-colors">
-                Conditions d'utilisation
-              </button>
-              <span>•</span>
-              <button className="hover:text-white transition-colors">
-                Cookies
+              <button className="hover:text-white transition-colors flex items-center gap-1">
+                <HelpCircle className="w-4 h-4" />
+                Help
               </button>
             </div>
           </div>
@@ -297,12 +247,12 @@ export function Footer({
 
       {/* Floating particles effect */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(8)].map((_, i) => (
+        {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 bg-blue-400/20 rounded-full"
+            className="absolute w-1 h-1 bg-red-400/20 rounded-full"
             style={{
-              left: `${10 + i * 12}%`,
+              left: `${10 + i * 15}%`,
               top: `${20 + (i % 3) * 20}%`,
             }}
             animate={{

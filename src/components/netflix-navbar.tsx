@@ -11,6 +11,7 @@ interface NetflixNavbarProps {
   onSearch: () => void;
   onHome: () => void;
   onSettings?: () => void;
+  onProfile?: () => void;
   isAuthenticated?: boolean;
   userProfile?: {
     name: string;
@@ -22,7 +23,16 @@ interface NetflixNavbarProps {
   onLogout?: () => void;
 }
 
-export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarProps) {
+export function NetflixNavbar({ 
+  onSearch, 
+  onHome, 
+  onSettings,
+  onProfile,
+  isAuthenticated = false,
+  userProfile,
+  onLogin,
+  onLogout
+}: NetflixNavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const location = useLocation();
@@ -47,14 +57,33 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
     { id: 'browse', label: 'Browse All', path: '/browse', icon: Grid },
     { id: 'search', label: 'Search', path: '/search', icon: Search },
     { id: 'watchlist', label: 'My List', path: '/watchlist', icon: Heart, view: 'watchlist' as View },
-    { id: 'movies', label: 'Movies', path: '/browse/movies', view: 'movies' as View },
-    { id: 'series', label: 'TV Shows', path: '/browse/tv', view: 'series' as View }
+    { id: 'movies', label: 'Movies', path: '/movies', view: 'movies' as View },
+    { id: 'series', label: 'TV Shows', path: '/tv', view: 'series' as View }
   ];
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
+  };
+
+  const handleProfileAction = (action: string) => {
+    setShowProfileMenu(false);
+    
+    switch (action) {
+      case 'profile':
+        onProfile?.();
+        break;
+      case 'settings':
+        onSettings?.();
+        break;
+      case 'login':
+        onLogin?.();
+        break;
+      case 'logout':
+        onLogout?.();
+        break;
+    }
   };
 
   return (
@@ -93,18 +122,19 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
         <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="cursor-pointer"
+          className="cursor-pointer flex-shrink-0"
           onClick={onHome}
         >
           <motion.h1 
-            className="text-2xl md:text-3xl font-black"
+            className="text-xl sm:text-2xl md:text-3xl font-black whitespace-nowrap"
             style={{
               background: isScrolled 
                 ? 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)' 
                 : '#ef4444',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: isScrolled ? 'transparent' : '#ef4444',
-              filter: isScrolled ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.3))' : 'none'
+              filter: isScrolled ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.3))' : 'none',
+              minWidth: 'fit-content'
             }}
           >
             STREALL
@@ -112,7 +142,7 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
         </motion.div>
 
         {/* Navigation Links */}
-        <div className="hidden md:flex items-center space-x-8">
+        <div className="hidden lg:flex items-center space-x-6 xl:space-x-8 flex-1 justify-center max-w-2xl">
           {navItems.map((item) => {
             const active = isActive(item.path);
             const ItemIcon = item.icon;
@@ -121,14 +151,14 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
               <Link
                 key={item.id}
                 to={item.path}
-                className={`relative px-3 py-2 text-sm font-medium transition-all duration-300 flex items-center gap-2 group ${
+                className={`relative px-2 xl:px-3 py-2 text-sm font-medium transition-all duration-300 flex items-center gap-2 group whitespace-nowrap ${
                   active
                     ? 'text-white'
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
                 {ItemIcon && (
-                  <ItemIcon className={`w-4 h-4 transition-all duration-300 ${
+                  <ItemIcon className={`w-4 h-4 transition-all duration-300 flex-shrink-0 ${
                     active ? 'text-red-400' : 'group-hover:text-red-400'
                   }`} />
                 )}
@@ -160,7 +190,7 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
         </div>
 
         {/* Right Side Actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
           {/* Search Button */}
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -175,13 +205,11 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
             <Search className="w-5 h-5 group-hover:text-red-400 transition-colors" />
           </motion.button>
 
-
-
-          {/* Notifications */}
+          {/* Notifications - Hidden on small screens */}
           <motion.button 
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="p-2 text-slate-300 hover:text-white transition-all duration-300 rounded-full hover:bg-white/10 group relative"
+            className="hidden sm:block p-2 text-slate-300 hover:text-white transition-all duration-300 rounded-full hover:bg-white/10 group relative"
             style={{
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)'
@@ -205,16 +233,24 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center space-x-2 text-slate-300 hover:text-white transition-all duration-300 p-2 rounded-full hover:bg-white/10"
+              className="flex items-center space-x-1 sm:space-x-2 text-slate-300 hover:text-white transition-all duration-300 p-2 rounded-full hover:bg-white/10"
               style={{
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)'
               }}
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center shadow-lg">
-                <User className="w-5 h-5 text-white" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center shadow-lg">
+                {isAuthenticated && userProfile?.avatar ? (
+                  <img 
+                    src={userProfile.avatar} 
+                    alt={userProfile.name}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                )}
               </div>
-              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showProfileMenu ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-300 ${showProfileMenu ? 'rotate-180' : ''}`} />
             </motion.button>
 
             {showProfileMenu && (
@@ -223,7 +259,7 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl border border-white/10 overflow-hidden"
+                className="absolute right-0 top-full mt-2 w-56 rounded-xl shadow-2xl border border-white/10 overflow-hidden"
                 style={{
                   background: 'rgba(0, 0, 0, 0.9)',
                   backdropFilter: 'blur(20px) saturate(1.5)',
@@ -232,57 +268,133 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
                 }}
               >
                 <div className="py-2">
-                  {/* Profile */}
-                  <motion.div
-                    whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-                    className="transition-colors duration-200"
-                  >
-                    <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors">
-                      <User className="w-4 h-4" />
-                      Profile
-                    </button>
-                  </motion.div>
+                  {isAuthenticated && userProfile ? (
+                    <>
+                      {/* User Info Header */}
+                      <div className="px-4 py-3 border-b border-slate-700/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center">
+                            {userProfile.avatar ? (
+                              <img 
+                                src={userProfile.avatar} 
+                                alt={userProfile.name}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <User className="w-5 h-5 text-white" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium text-sm truncate">
+                              {userProfile.name}
+                            </p>
+                            <p className="text-slate-400 text-xs truncate">
+                              Local Profile
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
-                  {/* Settings - Always available */}
-                  <motion.div
-                    whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-                    className="transition-colors duration-200"
-                  >
-                    <button 
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        onSettings?.();
-                      }}
-                      className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Settings
-                    </button>
-                  </motion.div>
+                      {/* Profile Actions */}
+                      <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                        className="transition-colors duration-200"
+                      >
+                        <button 
+                          onClick={() => handleProfileAction('profile')}
+                          className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          Profile
+                        </button>
+                      </motion.div>
 
-                  {/* My List */}
-                  <motion.div
-                    whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-                    className="transition-colors duration-200"
-                  >
-                    <Link
-                      to="/watchlist"
-                      className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
-                      onClick={() => setShowProfileMenu(false)}
-                    >
-                      <Heart className="w-4 h-4" />
-                      My List
-                    </Link>
-                  </motion.div>
-                  
-                  <hr className="border-slate-700/50 my-2" />
-                  
-                  <motion.button 
-                    whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                    className="w-full px-4 py-3 text-left text-slate-300 hover:text-red-400 transition-colors duration-200"
-                  >
-                    Sign Out
-                  </motion.button>
+                      {/* My List */}
+                      <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                        className="transition-colors duration-200"
+                      >
+                        <Link
+                          to="/watchlist"
+                          className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
+                          onClick={() => setShowProfileMenu(false)}
+                        >
+                          <Heart className="w-4 h-4" />
+                          My List
+                        </Link>
+                      </motion.div>
+
+                      {/* Settings */}
+                      <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                        className="transition-colors duration-200"
+                      >
+                        <button 
+                          onClick={() => handleProfileAction('settings')}
+                          className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
+                        >
+                          <Settings className="w-4 h-4" />
+                          Settings
+                        </button>
+                      </motion.div>
+                      
+                      <hr className="border-slate-700/50 my-2" />
+                      
+                      {/* Logout */}
+                      <motion.button 
+                        whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                        onClick={() => handleProfileAction('logout')}
+                        className="w-full px-4 py-3 text-left text-slate-300 hover:text-red-400 transition-colors duration-200"
+                      >
+                        Sign Out
+                      </motion.button>
+                    </>
+                  ) : (
+                    <>
+                      {/* Not authenticated - show login option */}
+                      <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                        className="transition-colors duration-200"
+                      >
+                        <button 
+                          onClick={() => handleProfileAction('login')}
+                          className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          Create Profile
+                        </button>
+                      </motion.div>
+
+                      {/* Settings - Always available */}
+                      <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                        className="transition-colors duration-200"
+                      >
+                        <button 
+                          onClick={() => handleProfileAction('settings')}
+                          className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
+                        >
+                          <Settings className="w-4 h-4" />
+                          Settings
+                        </button>
+                      </motion.div>
+
+                      {/* My List - Available even without profile */}
+                      <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                        className="transition-colors duration-200"
+                      >
+                        <Link
+                          to="/watchlist"
+                          className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
+                          onClick={() => setShowProfileMenu(false)}
+                        >
+                          <Heart className="w-4 h-4" />
+                          My List
+                        </Link>
+                      </motion.div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}

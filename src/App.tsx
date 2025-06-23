@@ -12,11 +12,14 @@ import { WatchlistView } from '@/components/watchlist-view'
 import { NetflixScrollToTop } from '@/components/netflix-enhancement'
 import { WelcomeModal } from '@/components/welcome-modal'
 import { SettingsPage } from '@/components/settings-page'
+import { ProfilePage } from '@/components/profile-page'
 import { tmdbService, type ContentItem } from '@/services/tmdb-service'
 import { authService } from '@/services/auth-service'
 import { settingsService } from '@/services/settings-service'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Settings } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { ArrowLeft, Settings, User } from 'lucide-react'
 import { ContentDetails } from '@/components/content-details'
 
 // Layout wrapper for consistent header/footer
@@ -27,6 +30,26 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
 }) {
   const navigate = useNavigate()
   const [showSettings, setShowSettings] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+  const [showCreateProfile, setShowCreateProfile] = useState(false)
+  const [authState, setAuthState] = useState(authService.getCurrentAuthState())
+
+  // Profile creation form
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: ''
+  })
+
+  useEffect(() => {
+    // Listen for auth state changes
+    const checkAuthState = () => {
+      setAuthState(authService.getCurrentAuthState())
+    }
+    
+    // Check auth state periodically (simple solution)
+    const interval = setInterval(checkAuthState, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSearch = () => {
     navigate('/search')
@@ -40,6 +63,45 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
     setShowSettings(true)
   }
 
+  const handleProfile = () => {
+    if (authState.isAuthenticated) {
+      setShowProfile(true)
+    } else {
+      setShowCreateProfile(true)
+    }
+  }
+
+  const handleLogin = () => {
+    if (authState.user && !authState.isAuthenticated) {
+      // User exists but not logged in
+      authService.login()
+      setAuthState(authService.getCurrentAuthState())
+    } else {
+      // No user profile exists
+      setShowCreateProfile(true)
+    }
+  }
+
+  const handleLogout = () => {
+    authService.logout()
+    setAuthState(authService.getCurrentAuthState())
+  }
+
+  const handleCreateProfile = () => {
+    if (!profileForm.name.trim()) return
+
+    const user = authService.createProfile(
+      profileForm.name,
+      profileForm.email || undefined
+    )
+
+    if (user) {
+      setAuthState(authService.getCurrentAuthState())
+      setShowCreateProfile(false)
+      setProfileForm({ name: '', email: '' })
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       {showNavbar && (
@@ -49,6 +111,16 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
           onSearch={handleSearch}
           onHome={handleHome}
           onSettings={handleSettings}
+          onProfile={handleProfile}
+          isAuthenticated={authState.isAuthenticated}
+          userProfile={authState.user ? {
+            name: authState.user.name,
+            email: authState.user.email || '',
+            avatar: authState.user.avatar,
+            isPremium: false // No premium system in open source version
+          } : undefined}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
         />
       )}
       
@@ -56,7 +128,21 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
         {children}
       </main>
       
-      {showFooter && <Footer />}
+      {showFooter && (
+        <Footer 
+          onProfileClick={handleProfile}
+          onSettingsClick={handleSettings}
+          onLoginClick={handleLogin}
+          onLogoutClick={handleLogout}
+          isAuthenticated={authState.isAuthenticated}
+          userProfile={authState.user ? {
+            name: authState.user.name,
+            email: authState.user.email || '',
+            avatar: authState.user.avatar,
+            isPremium: false
+          } : undefined}
+        />
+      )}
       <NetflixScrollToTop />
       
       {/* Settings Modal */}
@@ -64,117 +150,153 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
       />
+
+      {/* Profile Page */}
+      <ProfilePage
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+      />
+
+      {/* Create Profile Modal */}
+      <Dialog open={showCreateProfile} onOpenChange={setShowCreateProfile}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Create Your Profile
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-400">
+              Create a local profile to save your watchlist and preferences. No registration required!
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">Name *</label>
+                <Input
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="bg-gray-800 border-gray-600 text-white"
+                  placeholder="Enter your name"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">Email (Optional)</label>
+                <Input
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="bg-gray-800 border-gray-600 text-white"
+                  placeholder="Enter your email"
+                  type="email"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={handleCreateProfile}
+                disabled={!profileForm.name.trim()}
+                className="bg-red-600 hover:bg-red-700 text-white flex-1"
+              >
+                Create Profile
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowCreateProfile(false)
+                  setProfileForm({ name: '', email: '' })
+                }}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+            </div>
+
+            <div className="text-xs text-gray-500 text-center">
+              <p>✨ No registration required</p>
+              <p>🔒 All data stored locally on your device</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
 // Player Page Component
 function PlayerPage() {
-  const { contentId, mediaType } = useParams<{ contentId: string; mediaType: string }>()
-  const navigate = useNavigate()
-  const [content, setContent] = useState<ContentItem | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  
-  // Get season and episode from URL query parameters
-  const urlParams = new URLSearchParams(window.location.search)
-  const season = urlParams.get('s') ? parseInt(urlParams.get('s')!) : undefined
-  const episode = urlParams.get('e') ? parseInt(urlParams.get('e')!) : undefined
-
-  const loadContent = async (id: string, type: string) => {
-    try {
-      setIsLoading(true)
-      
-      // Use TMDB ID with the specified media type
-      const numericId = parseInt(id)
-      const contentData = await tmdbService.getDetails(numericId, type as 'movie' | 'tv')
-      
-      if (contentData) {
-        setContent(contentData)
-      } else {
-        // If TMDB lookup fails, create minimal content for direct streaming
-        const minimalContent: ContentItem = {
-          id: numericId,
-          tmdb_id: numericId,
-          imdb_id: undefined,
-          title: `Content ${id}`,
-          originalTitle: `Content ${id}`,
-          type: type as 'movie' | 'tv',
-          year: null,
-          releaseDate: '',
-          overview: 'Content details not available',
-          poster: null,
-          backdropPath: null,
-          rating: 0,
-          voteCount: 0,
-          popularity: 0,
-          genres: [],
-          genreIds: [],
-          runtime: null,
-          seasons: null,
-          episodes: null,
-          status: null,
-          isAdult: false,
-          streamUrl: ''
-        }
-        setContent(minimalContent)
-      }
-    } catch (error) {
-      console.error('Error loading content:', error)
-      // Create fallback content even on error to allow streaming attempt
-      const fallbackContent: ContentItem = {
-        id: parseInt(id) || 0,
-        tmdb_id: parseInt(id) || 0,
-        imdb_id: undefined,
-        title: `Content ${id}`,
-        originalTitle: `Content ${id}`,
-        type: type as 'movie' | 'tv',
-        year: null,
-        releaseDate: '',
-        overview: 'Error loading content details',
-        poster: null,
-        backdropPath: null,
-        rating: 0,
-        voteCount: 0,
-        popularity: 0,
-        genres: [],
-        genreIds: [],
-        runtime: null,
-        seasons: null,
-        episodes: null,
-        status: null,
-        isAdult: false,
-        streamUrl: ''
-      }
-      setContent(fallbackContent)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const { mediaType, contentId } = useParams<{ mediaType: string; contentId: string }>();
+  const navigate = useNavigate();
+  const [content, setContent] = useState<ContentItem | null>(null);
+  const [embedUrl, setEmbedUrl] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (contentId && mediaType) {
-      loadContent(contentId, mediaType)
-    }
-  }, [contentId, mediaType])
+    const loadContent = async () => {
+      if (!contentId || !mediaType) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        
+        // Get content details from TMDB
+        let contentData: ContentItem | null = null;
+        
+        if (mediaType === 'movie') {
+          contentData = await tmdbService.getMovieDetails(parseInt(contentId));
+        } else if (mediaType === 'tv') {
+          contentData = await tmdbService.getTVDetails(parseInt(contentId));
+        }
+
+        if (!contentData) {
+          console.error('Content not found');
+          navigate('/');
+          return;
+        }
+
+        setContent(contentData);
+
+        // Generate embed URL
+        const baseUrl = 'https://multiembed.mov';
+        let url = '';
+        
+        if (mediaType === 'movie') {
+          url = `${baseUrl}/?video_id=${contentId}&tmdb=1`;
+        } else if (mediaType === 'tv') {
+          // Get season and episode from URL params
+          const urlParams = new URLSearchParams(window.location.search);
+          const season = urlParams.get('s') || '1';
+          const episode = urlParams.get('e') || '1';
+          url = `${baseUrl}/?video_id=${contentId}&tmdb=1&s=${season}&e=${episode}`;
+        }
+        
+        setEmbedUrl(url);
+      } catch (error) {
+        console.error('Error loading content:', error);
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadContent();
+  }, [contentId, mediaType, navigate]);
 
   const handleBack = () => {
-    navigate(-1)
-  }
-
-  const embedUrl = content ? 
-    tmdbService.getStreamingUrl(content.tmdb_id, content.type, season, episode) : ''
+    navigate(-1);
+  };
 
   if (isLoading) {
     return (
       <Layout showNavbar={false} showFooter={false}>
         <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="text-center">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"
-            />
-            <p className="text-white text-lg">Loading content...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-white">Loading content...</p>
           </div>
         </div>
       </Layout>
@@ -244,107 +366,33 @@ function PlayerPage() {
 
 // Main App Component
 function MainApp() {
-  const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(true)
-  const [showWelcome, setShowWelcome] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-  const [setupRequired, setSetupRequired] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
-    // Initialize app
-    const initialize = async () => {
-      try {
-        // Check if user is already authenticated
-        const authState = authService.getCurrentAuthState()
-        if (authState.isAuthenticated && authState.user) {
-          // User is authenticated
-        }
-
-        // Check for first-time setup (both web and desktop)
-        const isFirstLaunch = settingsService.isFirstLaunch
-        const isSetupComplete = settingsService.isSetupCompleted
-        
-        if (isFirstLaunch && !isSetupComplete) {
-          setShowWelcome(true)
-          setSetupRequired(true)
-        } else if (!isSetupComplete) {
-          // Not first launch but setup incomplete
-          setSetupRequired(true)
-        }
-      } catch (error) {
-        console.error('Authentication error:', error)
-      } finally {
-        setTimeout(() => {
-          setIsLoading(false)
-        }, 1500)
+    // Check if setup is needed
+    const checkSetup = () => {
+      const isSetupCompleted = settingsService.isSetupCompleted;
+      if (!isSetupCompleted) {
+        setShowWelcome(true);
       }
-    }
+    };
 
-    initialize()
-  }, [])
+    checkSetup();
+  }, []);
 
   const handlePlayContent = (content: ContentItem) => {
-    // Use TMDB ID consistently with media type
-    const contentId = content.tmdb_id;
-    navigate(`/watch/${content.type}/${contentId}`)
-  }
+    // Navigate to player with the content
+    window.location.href = `/watch/${content.type}/${content.tmdb_id}`;
+  };
 
-  const handleWelcomeClose = () => {
-    setShowWelcome(false)
-    settingsService.completeFirstLaunch()
-  }
+  const handleCloseWelcome = () => {
+    setShowWelcome(false);
+  };
 
-  const handleWelcomeOpenSettings = () => {
-    setShowWelcome(false)
-    setShowSettings(true)
-    settingsService.completeFirstLaunch()
-  }
-
-  const handleSettingsClose = () => {
-    setShowSettings(false)
-    // Check if setup is now complete
-    if (settingsService.isSetupCompleted) {
-      setSetupRequired(false)
-    }
-  }
-
-  const handleSetupComplete = () => {
-    setShowSettings(false)
-    setSetupRequired(false)
-    // Optionally show a success message or refresh the app
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center space-y-6">
-          <motion.div
-            className="text-6xl font-black text-red-600"
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            STREALL
-          </motion.div>
-          
-          <motion.div
-            className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full mx-auto"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          />
-          
-          <motion.p
-            className="text-slate-400 text-lg"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            Loading your streaming experience...
-          </motion.p>
-        </div>
-      </div>
-    )
-  }
+  const handleOpenSettings = () => {
+    setShowWelcome(false);
+    // Settings will be opened by the Layout component
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -419,44 +467,18 @@ function MainApp() {
           </Layout>
         } />
 
-        {/* Redirect any unknown routes to home */}
+        {/* Catch all redirect to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* First-time setup modals - for both web and desktop */}
+      {/* Welcome Modal */}
       <WelcomeModal
         isOpen={showWelcome}
-        onClose={handleWelcomeClose}
-        onOpenSettings={handleWelcomeOpenSettings}
+        onClose={handleCloseWelcome}
+        onOpenSettings={handleOpenSettings}
       />
-      
-      <SettingsPage
-        isOpen={showSettings}
-        onClose={handleSettingsClose}
-        onSetupComplete={handleSetupComplete}
-      />
-
-      {/* Setup Required Warning */}
-      {setupRequired && !showWelcome && !showSettings && (
-        <div className="fixed bottom-4 right-4 z-50 bg-yellow-600 text-black p-4 rounded-lg shadow-lg max-w-sm">
-          <div className="flex items-center space-x-2">
-            <Settings className="w-5 h-5" />
-            <div>
-              <p className="font-semibold">Setup Required</p>
-              <p className="text-sm">Configure your TMDB API key to access content.</p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            className="mt-2 bg-yellow-700 hover:bg-yellow-800 text-white"
-            onClick={() => setShowSettings(true)}
-          >
-            Open Settings
-          </Button>
-        </div>
-      )}
     </div>
-  )
+  );
 }
 
 function App() {
@@ -464,7 +486,7 @@ function App() {
     <Router>
       <MainApp />
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;

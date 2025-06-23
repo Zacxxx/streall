@@ -1,162 +1,225 @@
+import { settingsService } from './settings-service';
+
 export interface UserProfile {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   avatar?: string;
-  isPremium: boolean;
   createdAt: string;
   lastLogin: string;
+  preferences: {
+    theme: 'dark' | 'light';
+    language: string;
+    autoplay: boolean;
+    notifications: boolean;
+  };
 }
 
 export interface AuthState {
   isAuthenticated: boolean;
   user: UserProfile | null;
-  token: string | null;
 }
 
 class AuthService {
-  private readonly STORAGE_KEY = 'streall_auth';
-  private readonly DEMO_USER: UserProfile = {
-    id: 'demo-user-1',
-    name: 'Demo User',
-    email: 'demo@streall.com',
-    avatar: '',
-    isPremium: true,
-    createdAt: new Date().toISOString(),
-    lastLogin: new Date().toISOString()
+  private readonly STORAGE_KEY = 'streall_user_profile';
+  private authState: AuthState = {
+    isAuthenticated: false,
+    user: null
   };
 
   constructor() {
     this.loadFromStorage();
   }
 
-  private loadFromStorage(): AuthState {
+  private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
+      const stored = settingsService.isDesktopApp 
+        ? this.loadFromFile() 
+        : this.loadFromLocalStorage();
+      
       if (stored) {
-        return JSON.parse(stored);
+        this.authState = stored;
       }
     } catch (error) {
       console.error('Error loading auth state from storage:', error);
+      this.authState = {
+        isAuthenticated: false,
+        user: null
+      };
     }
-    
-    return {
-      isAuthenticated: false,
-      user: null,
-      token: null
-    };
   }
 
-  private saveToStorage(authState: AuthState): void {
+  private loadFromLocalStorage(): AuthState | null {
+    const stored = localStorage.getItem(this.STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  }
+
+  private loadFromFile(): AuthState | null {
+    // For desktop app, we'll use localStorage for now
+    // In a real desktop app, this would read from a config file
+    return this.loadFromLocalStorage();
+  }
+
+  private saveToStorage(): void {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(authState));
+      if (settingsService.isDesktopApp) {
+        this.saveToFile();
+      } else {
+        this.saveToLocalStorage();
+      }
     } catch (error) {
       console.error('Error saving auth state to storage:', error);
     }
   }
 
-  // Demo login - in real app this would call an API
-  login(email: string = 'demo@streall.com', _password: string = 'demo'): Promise<AuthState> {
-    return new Promise((resolve) => {
-      // Simulate API call delay
-      setTimeout(() => {
-        const user: UserProfile = {
-          ...this.DEMO_USER,
-          email,
-          lastLogin: new Date().toISOString()
-        };
-
-        const authState: AuthState = {
-          isAuthenticated: true,
-          user,
-          token: `demo-token-${Date.now()}`
-        };
-
-        this.saveToStorage(authState);
-        resolve(authState);
-      }, 500);
-    });
+  private saveToLocalStorage(): void {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.authState));
   }
 
-  // Quick login for demo purposes
-  quickLogin(): AuthState {
+  private saveToFile(): void {
+    // For desktop app, we'll use localStorage for now
+    // In a real desktop app, this would write to a config file
+    this.saveToLocalStorage();
+  }
+
+  // Create a new local user profile
+  createProfile(name: string, email?: string): UserProfile {
     const user: UserProfile = {
-      ...this.DEMO_USER,
-      lastLogin: new Date().toISOString()
+      id: `user-${Date.now()}`,
+      name: name.trim(),
+      email: email?.trim(),
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      preferences: {
+        theme: 'dark',
+        language: 'en',
+        autoplay: true,
+        notifications: true
+      }
     };
 
-    const authState: AuthState = {
+    this.authState = {
       isAuthenticated: true,
-      user,
-      token: `demo-token-${Date.now()}`
+      user
     };
 
-    this.saveToStorage(authState);
-    return authState;
+    this.saveToStorage();
+    return user;
+  }
+
+  // Quick login for existing user
+  login(): boolean {
+    if (this.authState.user) {
+      this.authState.user.lastLogin = new Date().toISOString();
+      this.authState.isAuthenticated = true;
+      this.saveToStorage();
+      return true;
+    }
+    return false;
   }
 
   logout(): void {
-    const authState: AuthState = {
+    this.authState = {
       isAuthenticated: false,
-      user: null,
-      token: null
+      user: this.authState.user // Keep user data but mark as not authenticated
     };
+    this.saveToStorage();
+  }
 
-    this.saveToStorage(authState);
+  deleteProfile(): void {
+    this.authState = {
+      isAuthenticated: false,
+      user: null
+    };
+    
+    // Clear all related data
+    if (settingsService.isDesktopApp) {
+      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem('streall_watchlist');
+    } else {
+      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem('streall_watchlist');
+    }
   }
 
   getCurrentAuthState(): AuthState {
-    return this.loadFromStorage();
+    return { ...this.authState };
   }
 
   isAuthenticated(): boolean {
-    const authState = this.loadFromStorage();
-    return authState.isAuthenticated && authState.user !== null;
+    return this.authState.isAuthenticated && this.authState.user !== null;
+  }
+
+  hasProfile(): boolean {
+    return this.authState.user !== null;
   }
 
   getCurrentUser(): UserProfile | null {
-    const authState = this.loadFromStorage();
-    return authState.user;
+    return this.authState.user ? { ...this.authState.user } : null;
   }
 
   updateUserProfile(updates: Partial<UserProfile>): boolean {
-    const authState = this.loadFromStorage();
-    
-    if (!authState.isAuthenticated || !authState.user) {
+    if (!this.authState.user) {
       return false;
     }
 
-    const updatedUser: UserProfile = {
-      ...authState.user,
+    this.authState.user = {
+      ...this.authState.user,
       ...updates
     };
 
-    const newAuthState: AuthState = {
-      ...authState,
-      user: updatedUser
-    };
-
-    this.saveToStorage(newAuthState);
+    this.saveToStorage();
     return true;
   }
 
-  // Check if user has premium access
-  hasPremiumAccess(): boolean {
-    const user = this.getCurrentUser();
-    return user?.isPremium || false;
+  updatePreferences(preferences: Partial<UserProfile['preferences']>): boolean {
+    if (!this.authState.user) {
+      return false;
+    }
+
+    this.authState.user.preferences = {
+      ...this.authState.user.preferences,
+      ...preferences
+    };
+
+    this.saveToStorage();
+    return true;
   }
 
-  // Get user's watch history (placeholder for future implementation)
-  getWatchHistory(): string[] {
-    // This would typically come from an API
-    return [];
-  }
+  // Get user statistics
+  getUserStats(): {
+    accountAge: number; // days
+    watchlistCount: number;
+    lastActive: string;
+  } {
+    if (!this.authState.user) {
+      return {
+        accountAge: 0,
+        watchlistCount: 0,
+        lastActive: 'Never'
+      };
+    }
 
-  // Clear all user data
-  clearAllUserData(): void {
-    this.logout();
-    // Could also clear watchlist, preferences, etc.
-    localStorage.removeItem('streall_watchlist');
+    const createdDate = new Date(this.authState.user.createdAt);
+    const now = new Date();
+    const accountAge = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Get watchlist count from localStorage
+    let watchlistCount = 0;
+    try {
+      const watchlist = localStorage.getItem('streall_watchlist');
+      if (watchlist) {
+        watchlistCount = JSON.parse(watchlist).length;
+      }
+    } catch (error) {
+      console.error('Error reading watchlist count:', error);
+    }
+
+    return {
+      accountAge,
+      watchlistCount,
+      lastActive: this.authState.user.lastLogin
+    };
   }
 }
 
