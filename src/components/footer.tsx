@@ -18,7 +18,6 @@ interface FooterProps {
   onProfileClick?: () => void;
   onSettingsClick?: () => void;
   onLoginClick?: () => void;
-  onLogoutClick?: () => void;
   isAuthenticated?: boolean;
   userProfile?: {
     name: string;
@@ -32,7 +31,6 @@ export function Footer({
   onProfileClick, 
   onSettingsClick, 
   onLoginClick, 
-  onLogoutClick, 
   isAuthenticated = false,
   userProfile
 }: FooterProps) {

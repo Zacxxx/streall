@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { NetflixHero } from '@/components/netflix-hero'
 import { ContentRows } from '@/components/content-rows'
 import { NetflixNavbar } from '@/components/netflix-navbar'
@@ -19,7 +18,7 @@ import { settingsService } from '@/services/settings-service'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Settings, User } from 'lucide-react'
+import { ArrowLeft, User } from 'lucide-react'
 import { ContentDetails } from '@/components/content-details'
 
 // Layout wrapper for consistent header/footer
@@ -133,7 +132,6 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
           onProfileClick={handleProfile}
           onSettingsClick={handleSettings}
           onLoginClick={handleLogin}
-          onLogoutClick={handleLogout}
           isAuthenticated={authState.isAuthenticated}
           userProfile={authState.user ? {
             name: authState.user.name,
@@ -247,9 +245,9 @@ function PlayerPage() {
         let contentData: ContentItem | null = null;
         
         if (mediaType === 'movie') {
-          contentData = await tmdbService.getMovieDetails(parseInt(contentId));
+          contentData = await tmdbService.getDetails(parseInt(contentId), 'movie');
         } else if (mediaType === 'tv') {
-          contentData = await tmdbService.getTVDetails(parseInt(contentId));
+          contentData = await tmdbService.getDetails(parseInt(contentId), 'tv');
         }
 
         if (!contentData) {
