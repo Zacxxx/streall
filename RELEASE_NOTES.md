@@ -1,3 +1,165 @@
+# Streall v1.0.6 Release Notes
+
+## 🎉 Major UI/UX Improvements
+
+### ❤️ Enhanced Watchlist Experience
+- **Hero Section Integration**: Add to watchlist directly from the hero section with functional Plus/Heart button
+- **Real-time Status Updates**: Watchlist buttons dynamically show current status across all components
+- **Improved Button Contrast**: Much better visibility with enhanced color schemes and hover effects
+- **Consistent Experience**: Unified watchlist functionality across hero, content details, and Netflix cards
+
+### 🎨 Netflix Card Layout Fixes
+- **Fixed Text Overlap**: Resolved title overlapping with SERIES/FILM badges using intelligent flexbox layout
+- **Better Text Display**: Titles now show 2 lines instead of being truncated, improving readability
+- **Professional Spacing**: Clean layout with proper gaps and padding between all elements
+- **Responsive Design**: Cards adapt better to different screen sizes and content lengths
+
+### 🖱️ Interactive Enhancements
+- **Smart Button States**: Watchlist buttons show filled heart when item is in list, plus icon when not
+- **Smooth Transitions**: All buttons now have 300ms transitions for professional feel
+- **Better Hover Effects**: Enhanced visual feedback on all interactive elements
+- **Tooltip Support**: Helpful tooltips for better user experience
+
+## 🔧 Technical Improvements
+
+### Desktop Application Stability
+- **Simplified Electron Main Process**: Removed complex ad blocker initialization that was causing startup failures
+- **Better Error Handling**: Added comprehensive error logging and exception handling
+- **Improved Startup Reliability**: Desktop app now starts consistently without hanging
+- **Debug Logging**: Enhanced console output for better troubleshooting
+
+### Component Architecture
+- **Watchlist Service Integration**: Hero component now properly integrates with watchlist service
+- **State Management**: Real-time synchronization of watchlist status across components
+- **ID Handling**: Improved content ID management (IMDB vs TMDB) for better compatibility
+- **Performance Optimization**: Reduced unnecessary re-renders and improved component efficiency
+
+## 🎨 Visual Design Improvements
+
+### Button Contrast Enhancements
+**Before**: Poor visibility with `border-slate-400` and `bg-black/50`
+**After**: Professional contrast with:
+- **Not in watchlist**: `border-white/60 bg-black/60` with white hover effects
+- **In watchlist**: `border-red-500 bg-red-600/80` with red theming
+- **Enhanced hover states**: Smooth color transitions and better visual feedback
+
+### Netflix Card Layout
+**Before**: Title and badges positioned independently causing overlap
+**After**: Intelligent layout with:
+- **Flexbox container**: `justify-between` with proper gap spacing
+- **Title section**: `flex-1 min-w-0` for responsive text handling
+- **Badge section**: `flex-shrink-0` for consistent positioning
+- **Two-line titles**: `line-clamp-2` instead of truncation
+
+### Gradient Improvements
+- **Stronger backgrounds**: `from-black/90 via-black/60` for better text readability
+- **Better badge contrast**: `bg-black/80` with backdrop blur for enhanced visibility
+- **Improved hover overlays**: Enhanced gradients for better content separation
+
+## 🚀 New Features
+
+### Hero Section Watchlist
+- **Functional Plus Button**: Previously decorative button now adds/removes from watchlist
+- **Dynamic Icon Changes**: Shows Plus icon for add, filled Heart for remove
+- **Instant Feedback**: Visual state changes immediately when clicked
+- **Consistent Styling**: Matches design language of other watchlist buttons
+
+### Enhanced Card Interactions
+- **Better Click Areas**: Improved button sizing and positioning
+- **Visual Feedback**: All buttons provide clear hover and active states
+- **Accessibility**: Better contrast ratios and tooltip support
+- **Mobile Optimization**: Touch-friendly button sizes and spacing
+
+## 🐛 Bug Fixes
+
+### Critical Desktop Fixes
+- **✅ Fixed App Startup**: Resolved hanging issue caused by ad blocker initialization
+- **✅ Fixed Window Display**: Desktop app now shows content properly on Windows
+- **✅ Fixed Build Process**: Resolved file permission issues during distribution builds
+- **✅ Fixed Console Errors**: Cleaned up cache-related warnings (non-critical)
+
+### UI/UX Fixes
+- **✅ Fixed Text Overlap**: Netflix cards no longer have title/badge overlap issues
+- **✅ Fixed Button Visibility**: All watchlist buttons now have proper contrast
+- **✅ Fixed Hover States**: Smooth transitions and consistent behavior
+- **✅ Fixed Responsive Layout**: Cards work properly on all screen sizes
+
+### Component Fixes
+- **✅ Fixed Hero Watchlist**: Plus button now actually adds to watchlist
+- **✅ Fixed State Sync**: Watchlist status updates across all components
+- **✅ Fixed ID Handling**: Proper content identification for watchlist operations
+- **✅ Fixed Variable Scope**: Resolved TypeScript compilation errors
+
+## 🎯 User Experience Improvements
+
+### Watchlist Workflow
+1. **Hero Section**: Click Plus button to add featured content to watchlist
+2. **Visual Feedback**: Button changes to filled heart when added
+3. **Consistent Experience**: Same functionality works across all content cards
+4. **Real-time Updates**: Status changes immediately without page refresh
+
+### Visual Polish
+- **Professional Animations**: Smooth 300ms transitions on all interactive elements
+- **Better Color Schemes**: Enhanced contrast for accessibility and aesthetics
+- **Improved Spacing**: Clean, consistent padding and margins throughout
+- **Modern Design**: Netflix-inspired UI with contemporary styling
+
+## 🛠️ Technical Details
+
+### Architecture Improvements
+- **Service Integration**: Hero component now properly uses watchlist service
+- **State Management**: Efficient state updates with minimal re-renders
+- **Error Handling**: Comprehensive error catching and logging
+- **Type Safety**: Improved TypeScript definitions and error resolution
+
+### Performance Enhancements
+- **Reduced Bundle Size**: Removed unused ad blocker dependencies from main process
+- **Faster Startup**: Simplified initialization process for quicker app launch
+- **Better Memory Usage**: Optimized component lifecycle and state management
+- **Improved Rendering**: Efficient DOM updates and transitions
+
+### Cross-Platform Compatibility
+- **Windows**: Fixed startup issues and improved stability
+- **Web**: Maintained full compatibility with browser version
+- **Responsive**: Better mobile and tablet experience
+- **Accessibility**: Improved keyboard navigation and screen reader support
+
+## 📋 Installation
+
+### Desktop Application
+Download from [GitHub Releases](https://github.com/Zacxxx/streall/releases/tag/v1.0.6):
+- **Windows**: `Streall-1.0.6-win.zip` (Portable)
+- **macOS**: `Streall-1.0.6-mac.dmg` (Installer)
+
+### Web Application
+Visit the hosted version or run locally:
+```bash
+git clone https://github.com/Zacxxx/streall.git
+cd streall
+npm install
+npm run dev
+```
+
+## 🔄 Upgrade Notes
+
+- **Existing Users**: All watchlists and settings preserved
+- **Desktop Users**: Improved stability and functionality
+- **No Breaking Changes**: All existing features continue to work
+- **Enhanced Experience**: Better UI/UX without losing functionality
+
+## 🚀 What's Next
+
+- **Re-enable Ad Blocker**: Optional ad blocking with timeout handling
+- **Enhanced Animations**: More sophisticated UI transitions
+- **Advanced Watchlist**: Categories, tags, and better organization
+- **Performance**: Further optimizations and bundle size reduction
+
+---
+
+**Note**: This release focuses on stability, user experience, and visual polish. The desktop application now works reliably on Windows, and the watchlist experience is significantly improved across all platforms.
+
+---
+
 # Streall v1.0.5 Release Notes
 
 ## 🐛 Critical Bug Fixes
@@ -130,7 +292,7 @@ npm run dev
 - Settings and preferences can be migrated to profiles
 - No breaking changes to existing functionality
 
-## 🐛 Bug Fixes
+## �� Bug Fixes
 
 - Fixed navbar title display issues on mobile devices
 - Resolved responsive design problems

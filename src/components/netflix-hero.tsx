@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Info, Star, Volume2, VolumeX, Plus, ThumbsUp } from 'lucide-react';
+import { Play, Info, Star, Volume2, VolumeX, Plus, ThumbsUp, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { tmdbService, type ContentItem } from '@/services/tmdb-service';
+import { watchlistService } from '@/services/watchlist-service';
 import { useNavigate } from 'react-router-dom';
 
 interface NetflixHeroProps {
@@ -15,6 +16,7 @@ export function NetflixHero({ onPlayContent }: NetflixHeroProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -76,6 +78,16 @@ export function NetflixHero({ onPlayContent }: NetflixHeroProps) {
 
   const currentContent = featuredContent[currentIndex];
 
+  // Check watchlist status when current content changes
+  useEffect(() => {
+    if (currentContent) {
+      const contentId = currentContent.imdb_id && currentContent.imdb_id !== 'undefined' 
+        ? currentContent.imdb_id 
+        : currentContent.tmdb_id.toString();
+      setIsInWatchlist(watchlistService.isInWatchlist(contentId));
+    }
+  }, [currentContent]);
+
   const handlePlay = () => {
     if (currentContent) {
       // Use the appropriate ID for routing - prefer IMDB ID if available, otherwise TMDB ID
@@ -110,6 +122,33 @@ export function NetflixHero({ onPlayContent }: NetflixHeroProps) {
 
   const formatYear = (date: string) => {
     return new Date(date).getFullYear();
+  };
+
+  const handleAddToWatchlist = () => {
+    if (!currentContent) return;
+    
+    const contentId = currentContent.imdb_id && currentContent.imdb_id !== 'undefined' 
+      ? currentContent.imdb_id 
+      : currentContent.tmdb_id.toString();
+    
+    if (isInWatchlist) {
+      const removed = watchlistService.removeFromWatchlist(contentId);
+      if (removed) setIsInWatchlist(false);
+    } else {
+      const watchlistItem = {
+        id: currentContent.id.toString(),
+        imdb_id: contentId,
+        title: currentContent.title,
+        year: currentContent.year,
+        type: currentContent.type,
+        poster: currentContent.poster || undefined,
+        genres: currentContent.genres,
+        rating: currentContent.rating
+      };
+      
+      const added = watchlistService.addToWatchlist(watchlistItem);
+      if (added) setIsInWatchlist(true);
+    }
   };
 
   if (isLoading || !currentContent) {
@@ -266,15 +305,27 @@ export function NetflixHero({ onPlayContent }: NetflixHeroProps) {
 
               {/* Quick Action Buttons */}
               <div className="flex gap-2 ml-4">
-                <button className="w-12 h-12 rounded-full border-2 border-slate-400 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:border-white transition-colors">
-                  <Plus className="w-5 h-5" />
+                <button 
+                  onClick={handleAddToWatchlist}
+                  className={`w-12 h-12 rounded-full border-2 backdrop-blur-sm flex items-center justify-center transition-all duration-300 ${
+                    isInWatchlist 
+                      ? 'border-red-500 bg-red-600/80 text-white hover:bg-red-500/80' 
+                      : 'border-white/60 bg-black/60 text-white hover:border-white hover:bg-white/10'
+                  }`}
+                  title={isInWatchlist ? 'Remove from My List' : 'Add to My List'}
+                >
+                  {isInWatchlist ? (
+                    <Heart className="w-5 h-5 fill-current" />
+                  ) : (
+                    <Plus className="w-5 h-5" />
+                  )}
                 </button>
-                <button className="w-12 h-12 rounded-full border-2 border-slate-400 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:border-white transition-colors">
+                <button className="w-12 h-12 rounded-full border-2 border-white/60 bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:border-white hover:bg-white/10 transition-all duration-300">
                   <ThumbsUp className="w-5 h-5" />
                 </button>
                 <button 
                   onClick={() => setIsMuted(!isMuted)}
-                  className="w-12 h-12 rounded-full border-2 border-slate-400 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:border-white transition-colors"
+                  className="w-12 h-12 rounded-full border-2 border-white/60 bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:border-white hover:bg-white/10 transition-all duration-300"
                 >
                   {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </button>

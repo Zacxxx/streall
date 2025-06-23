@@ -296,7 +296,11 @@ export function ContentDetails() {
                   onClick={handleAddToWatchlist}
                   variant="outline"
                   size="lg"
-                  className="border-slate-500 text-white hover:bg-slate-700 font-bold px-8 py-3 text-lg rounded-md flex items-center gap-3"
+                  className={`font-bold px-8 py-3 text-lg rounded-md flex items-center gap-3 transition-all duration-300 ${
+                    isInWatchlist 
+                      ? 'border-red-500 bg-red-600/20 text-red-400 hover:bg-red-600/30 hover:border-red-400' 
+                      : 'border-white/60 bg-white/10 text-white hover:bg-white/20 hover:border-white'
+                  }`}
                 >
                   {isInWatchlist ? <Heart className="w-5 h-5 fill-current" /> : <Plus className="w-5 h-5" />}
                   {isInWatchlist ? 'Remove from List' : 'Add to List'}

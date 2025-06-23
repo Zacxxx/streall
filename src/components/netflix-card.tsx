@@ -135,11 +135,16 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
         </div>
 
         {/* Compact Info */}
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white text-sm truncate cursor-pointer hover:text-red-400 transition-colors">
-            {content.title}
-          </h3>
-          <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+        <div className="flex-1 min-w-0 pr-3">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="font-semibold text-white text-sm line-clamp-2 cursor-pointer hover:text-red-400 transition-colors flex-1 min-w-0">
+              {content.title}
+            </h3>
+            <span className="bg-red-600 px-2 py-1 rounded text-white text-xs font-medium whitespace-nowrap flex-shrink-0">
+              {content.type === 'tv' ? 'SERIES' : 'FILM'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
             <span>{year}</span>
             <span>•</span>
             <span>{duration}</span>
@@ -208,24 +213,27 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
           loading="lazy"
         />
 
-        {/* Always Visible Title Overlay */}
-        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-          <h3 className="font-bold text-white text-sm leading-tight line-clamp-2 drop-shadow-lg hover:text-red-400 transition-colors">
-            {content.title}
-          </h3>
-        </div>
-
-        {/* Top Right Badges */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2">
-          <span className="bg-red-600 px-2 py-1 rounded text-white text-xs font-medium">
-            {content.type === 'tv' ? 'SERIES' : 'FILM'}
-          </span>
-          {rating > 0 && (
-            <div className="flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded">
-              <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-              <span className="text-white text-xs font-medium">{rating.toFixed(1)}</span>
+        {/* Top Overlay with Better Layout */}
+        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/90 via-black/60 to-transparent">
+          <div className="flex items-start justify-between gap-2">
+            {/* Title - takes available space */}
+            <h3 className="font-bold text-white text-sm leading-tight line-clamp-2 drop-shadow-lg hover:text-red-400 transition-colors flex-1 min-w-0 pr-2">
+              {content.title}
+            </h3>
+            
+            {/* Badges - fixed width */}
+            <div className="flex flex-col gap-1 flex-shrink-0">
+              <span className="bg-red-600 px-2 py-1 rounded text-white text-xs font-medium whitespace-nowrap">
+                {content.type === 'tv' ? 'SERIES' : 'FILM'}
+              </span>
+              {rating > 0 && (
+                <div className="flex items-center gap-1 bg-black/80 backdrop-blur-sm px-2 py-1 rounded">
+                  <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                  <span className="text-white text-xs font-medium">{rating.toFixed(1)}</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Loading State */}
@@ -240,7 +248,7 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
 
         {/* Hover Info Overlay - Bottom Half of Card */}
         <div 
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent p-3 transition-all duration-300 ${
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent p-3 pt-6 transition-all duration-300 ${
             isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
           }`}
         >
@@ -260,8 +268,10 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-7 w-7 rounded-full text-white hover:bg-white/20 transition-all duration-200 ${
-                  isInWatchlist ? 'text-red-400 bg-red-500/20' : ''
+                className={`h-7 w-7 rounded-full transition-all duration-200 ${
+                  isInWatchlist 
+                    ? 'text-red-400 bg-red-500/30 hover:bg-red-500/40 border border-red-500/50' 
+                    : 'text-white bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50'
                 }`}
                 onClick={handleAddToWatchlist}
                 title={isInWatchlist ? 'Remove from List' : 'Add to List'}

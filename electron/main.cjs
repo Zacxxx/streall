@@ -1,50 +1,10 @@
-const { app, BrowserWindow, Menu, session } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
-const { ElectronBlocker } = require('@ghostery/adblocker-electron');
-const fetch = require('cross-fetch');
 const isDev = process.env.NODE_ENV === 'development';
 
-// Initialize Ghostery Ad Blocker
-async function initializeAdBlocker() {
-  try {
-    console.log('🛡️ Initializing Ghostery Ad Blocker...');
-    
-    // Create blocker from multiple filter lists (same as used by uBlock Origin)
-    const blocker = await ElectronBlocker.fromLists(fetch, [
-      'https://easylist.to/easylist/easylist.txt', // EasyList
-      'https://easylist.to/easylist/easyprivacy.txt', // EasyPrivacy
-      'https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt', // uBlock filters
-      'https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/badware.txt', // Badware risks
-      'https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/privacy.txt', // Privacy
-      'https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/resource-abuse.txt', // Resource abuse
-      'https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt' // Unbreak
-    ], {
-      enableCompression: true,
-    });
-
-    // Enable blocker for all sessions
-    blocker.enableBlockingInSession(session.defaultSession);
-    
-    // Log blocking statistics
-    blocker.on('request-blocked', (request) => {
-      console.log('🚫 Blocked:', request.url);
-    });
-    
-    blocker.on('request-redirected', (request) => {
-      console.log('↩️ Redirected:', request.url);
-    });
-
-    console.log('✅ Ghostery Ad Blocker initialized successfully!');
-    console.log(`📊 Loaded ${blocker.getFilters().length} filter rules`);
-    
-    return blocker;
-  } catch (error) {
-    console.error('❌ Failed to initialize ad blocker:', error);
-    return null;
-  }
-}
-
 function createWindow() {
+  console.log('Creating Electron window...');
+  
   // Create the browser window
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -62,35 +22,48 @@ function createWindow() {
 
   // Load the app
   if (isDev) {
+    console.log('Loading development URL...');
     mainWindow.loadURL('http://localhost:5173');
     // Open DevTools in development
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    console.log('Loading production file:', indexPath);
+    mainWindow.loadFile(indexPath);
   }
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
+    console.log('Window ready, showing...');
     mainWindow.show();
   });
 
   // Handle window closed
   mainWindow.on('closed', () => {
+    console.log('Window closed, quitting app...');
     app.quit();
+  });
+
+  // Debug: Log when page finishes loading
+  mainWindow.webContents.once('did-finish-load', () => {
+    console.log('Page finished loading!');
+  });
+
+  // Debug: Log any loading failures
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Failed to load page:', errorCode, errorDescription);
   });
 }
 
 // This method will be called when Electron has finished initialization
-app.whenReady().then(async () => {
-  // Initialize ad blocker first
-  await initializeAdBlocker();
-  
-  // Then create the window
+app.whenReady().then(() => {
+  console.log('Electron app ready!');
   createWindow();
 });
 
 // Quit when all windows are closed
 app.on('window-all-closed', () => {
+  console.log('All windows closed');
   // On macOS, keep app running even when all windows are closed
   if (process.platform !== 'darwin') {
     app.quit();
@@ -98,6 +71,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
+  console.log('App activated');
   // On macOS, re-create window when dock icon is clicked
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
@@ -107,4 +81,13 @@ app.on('activate', () => {
 // Remove default menu bar
 if (!isDev) {
   Menu.setApplicationMenu(null);
-} 
+}
+
+// Add error handling for unhandled exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+}); 
