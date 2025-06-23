@@ -10,7 +10,7 @@ export class DirectStreamUrls {
   /**
    * Generate direct stream URLs based on HAR file analysis patterns
    */
-  static generateStreamUrls(tmdbId: string, type: 'movie' | 'tv' = 'movie'): DirectStreamUrl[] {
+  static generateStreamUrls(tmdbId: string, _type: 'movie' | 'tv' = 'movie'): DirectStreamUrl[] {
     console.log(`🎯 Generating direct stream URLs for TMDB ID: ${tmdbId}`);
     
     const streams: DirectStreamUrl[] = [];

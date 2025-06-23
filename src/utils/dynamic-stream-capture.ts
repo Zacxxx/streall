@@ -121,16 +121,16 @@ export class DynamicStreamCapture {
       };
       
       // Intercept XMLHttpRequest
-      XMLHttpRequest.prototype.open = function(method, url, ...args) {
-        this._capturedUrl = url.toString();
-        return originalXHROpen.call(this, method, url, ...args);
+      XMLHttpRequest.prototype.open = function(method: string, url: string | URL, async: boolean = true, username?: string | null, password?: string | null) {
+        (this as any)._capturedUrl = url.toString();
+        return originalXHROpen.call(this, method, url, async, username, password);
       };
       
-      XMLHttpRequest.prototype.send = function(...args) {
-        if (this._capturedUrl) {
-          captureStream(this._capturedUrl);
+      XMLHttpRequest.prototype.send = function(body?: Document | XMLHttpRequestBodyInit | null) {
+        if ((this as any)._capturedUrl) {
+          captureStream((this as any)._capturedUrl);
         }
-        return originalXHRSend.call(this, ...args);
+        return originalXHRSend.call(this, body);
       };
       
       iframe.onload = async () => {

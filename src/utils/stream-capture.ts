@@ -119,10 +119,10 @@ export class StreamCapture {
     const originalXHROpen = XMLHttpRequest.prototype.open;
     (window as any)._originalXHROpen = originalXHROpen;
     
-    XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...args: any[]) {
+    XMLHttpRequest.prototype.open = function(method: string, url: string | URL, async: boolean = true, username?: string | null, password?: string | null) {
       const urlString = typeof url === 'string' ? url : url.toString();
       StreamCapture.analyzeUrl(urlString, 'xhr');
-      return originalXHROpen.call(this, method, url, ...args);
+      return originalXHROpen.call(this, method, url, async, username, password);
     };
     
     console.log('🌐 Network monitoring activated');
@@ -220,7 +220,6 @@ export class StreamCapture {
    */
   private static detectStreamsByPatterns() {
     // Check for common streaming service patterns in current page
-    const currentUrl = window.location.href;
     const pageContent = document.documentElement.innerHTML;
     
     // Look for embedded stream URLs in page content

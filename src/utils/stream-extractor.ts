@@ -238,10 +238,10 @@ export class StreamExtractor {
             let iframeSrc = srcMatch[1];
             
             // Handle relative URLs
-            if (iframeSrc.startsWith('/')) {
+            if (iframeSrc && iframeSrc.startsWith('/')) {
               const baseUrl = new URL(streamingUrl);
               iframeSrc = `${baseUrl.protocol}//${baseUrl.host}${iframeSrc}`;
-            } else if (iframeSrc.startsWith('./')) {
+            } else if (iframeSrc && iframeSrc.startsWith('./')) {
               const baseUrl = new URL(streamingUrl);
               iframeSrc = `${baseUrl.protocol}//${baseUrl.host}${baseUrl.pathname}${iframeSrc.substring(2)}`;
             }
@@ -249,14 +249,16 @@ export class StreamExtractor {
             console.log(`📺 Processing iframe: ${iframeSrc}`);
             
             // Extract from iframe content - this often contains the actual video player
-            try {
-              const iframeStreams = await this.extractFromIframe(iframeSrc, streamingUrl);
-              if (iframeStreams && iframeStreams.sources.length > 0) {
-                console.log(`✅ Found ${iframeStreams.sources.length} streams in iframe`);
-                sources.push(...iframeStreams.sources);
+            if (iframeSrc) {
+              try {
+                const iframeStreams = await this.extractFromIframe(iframeSrc, streamingUrl);
+                if (iframeStreams && iframeStreams.sources.length > 0) {
+                  console.log(`✅ Found ${iframeStreams.sources.length} streams in iframe`);
+                  sources.push(...iframeStreams.sources);
+                }
+              } catch (error) {
+                console.error(`❌ Error extracting from iframe ${iframeSrc}:`, error);
               }
-            } catch (error) {
-              console.error(`❌ Error extracting from iframe ${iframeSrc}:`, error);
             }
           }
         }
@@ -426,18 +428,20 @@ export class StreamExtractor {
             let nestedSrc = nestedSrcMatch[1];
             
             // Handle relative URLs for nested iframe
-            if (nestedSrc.startsWith('/')) {
+            if (nestedSrc && nestedSrc.startsWith('/')) {
               const baseUrl = new URL(iframeUrl);
               nestedSrc = `${baseUrl.protocol}//${baseUrl.host}${nestedSrc}`;
             }
             
-            try {
-              const nestedStreams = await this.extractFromIframe(nestedSrc, iframeUrl);
-              if (nestedStreams && nestedStreams.sources.length > 0) {
-                sources.push(...nestedStreams.sources);
+            if (nestedSrc) {
+              try {
+                const nestedStreams = await this.extractFromIframe(nestedSrc, iframeUrl);
+                if (nestedStreams && nestedStreams.sources.length > 0) {
+                  sources.push(...nestedStreams.sources);
+                }
+              } catch (error) {
+                console.error(`❌ Error extracting from nested iframe:`, error);
               }
-            } catch (error) {
-              console.error(`❌ Error extracting from nested iframe:`, error);
             }
           }
         }
@@ -497,7 +501,7 @@ export class StreamExtractor {
    */
   static extractTitle(html: string): string | undefined {
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    return titleMatch ? titleMatch[1].trim() : undefined;
+    return titleMatch?.[1]?.trim();
   }
 
   /**
@@ -518,7 +522,7 @@ export class StreamExtractor {
    * Sort sources by preference (HLS > MP4 > WebM > Others)
    */
   static sortSourcesByPreference(sources: StreamSource[]): StreamSource[] {
-    const typeOrder = { 'hls': 0, 'mp4': 1, 'webm': 2, 'dash': 3, 'unknown': 4 };
+    const typeOrder: Record<string, number> = { 'hls': 0, 'mp4': 1, 'webm': 2, 'dash': 3, 'unknown': 4 };
     return sources.sort((a, b) => {
       const orderA = typeOrder[a.type] ?? 99;
       const orderB = typeOrder[b.type] ?? 99;

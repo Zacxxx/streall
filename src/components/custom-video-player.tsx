@@ -3,12 +3,19 @@ import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Setting
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { StreamExtractor, type StreamSource } from '@/utils/stream-extractor';
-import { StreamInjector, type CapturedStream } from '@/utils/stream-injector';
+import { StreamInjector } from '@/utils/stream-injector';
 import { StreamCapture } from '@/utils/stream-capture';
-import { RedirectFollower, type RedirectChain } from '@/utils/redirect-follower';
-import { RealStreamExtractor, type RealStreamSource, type StreamProviderResult } from '@/utils/real-stream-extractor';
-import { DirectStreamUrls, type DirectStreamUrl } from '@/utils/direct-stream-urls';
-import { DynamicStreamCapture, type DynamicStreamUrl } from '@/utils/dynamic-stream-capture';
+import { RedirectFollower } from '@/utils/redirect-follower';
+import { RealStreamExtractor } from '@/utils/real-stream-extractor';
+import { DirectStreamUrls } from '@/utils/direct-stream-urls';
+import { DynamicStreamCapture } from '@/utils/dynamic-stream-capture';
+
+// Extend Window interface to include our custom function
+declare global {
+  interface Window {
+    extractStreamsFunction?: () => void;
+  }
+}
 
 interface CustomVideoPlayerProps {
   embedUrl: string;
@@ -22,7 +29,7 @@ interface StreamData {
   currentSource: StreamSource | null;
 }
 
-export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }: CustomVideoPlayerProps) {
+export function CustomVideoPlayer({ embedUrl, title, onExtractStreams }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -46,6 +53,9 @@ export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }:
       const tmdbIdMatch = embedUrl.match(/\/(\d+)$/);
       if (tmdbIdMatch) {
         const tmdbId = tmdbIdMatch[1];
+        if (!tmdbId) {
+          throw new Error('Invalid TMDB ID extracted from URL');
+        }
         console.log('🎬 Using TMDB ID:', tmdbId);
 
         // Primary method: Dynamic stream capture with real browser interaction
@@ -59,10 +69,10 @@ export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }:
           // Sort streams by preference
           const sortedDynamicStreams = DynamicStreamCapture.sortStreamsByPreference(dynamicResult.streams);
           
-          // Convert to StreamSource format
+          // Convert to StreamSource format with proper type handling
           const sources: StreamSource[] = sortedDynamicStreams.map((stream) => ({
             url: stream.url,
-            type: stream.type,
+            type: stream.type as StreamSource['type'], // Type assertion since we know it's compatible
             quality: stream.quality,
             label: `${stream.type.toUpperCase()} - ${stream.quality}`
           }));
@@ -83,10 +93,10 @@ export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }:
           // Sort streams by preference
           const sortedDirectStreams = DirectStreamUrls.sortStreamsByPreference(directStreams);
           
-          // Convert to StreamSource format
+          // Convert to StreamSource format with proper type handling
           const sources: StreamSource[] = sortedDirectStreams.map((stream) => ({
             url: stream.url,
-            type: stream.type,
+            type: stream.type === 'direct' ? 'unknown' : stream.type as StreamSource['type'],
             quality: stream.quality,
             label: `${stream.provider} - ${stream.label}`
           }));
@@ -231,37 +241,43 @@ export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }:
     }
   }, [onExtractStreams]);
 
-  // Initialize video player
+  // Add global function to window for debugging
   useEffect(() => {
-    const initializePlayer = async () => {
-      if (useDirectStream) {
-        const stream = await extractStreamUrl(embedUrl);
-        if (stream && stream.currentSource) {
-          setStreamData(stream);
-          console.log('✅ Using direct stream:', stream.currentSource.url);
-        } else {
-          setError('Could not extract direct stream URL');
-          console.log('⚠️ Falling back to iframe embed');
-          setUseDirectStream(false);
-        }
+    (window as any).extractStreamsFunction = () => {
+      console.log('🔧 Manual stream extraction triggered');
+      if (onExtractStreams) {
+        onExtractStreams();
       }
-      setIsLoading(false);
     };
+    
+    return () => {
+      delete (window as any).extractStreamsFunction;
+    };
+  }, [onExtractStreams]);
 
+  // Initialize player when component mounts
+  useEffect(() => {
     initializePlayer();
-  }, [embedUrl, useDirectStream]);
+    
+    // Cleanup function
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    };
+  }, [embedUrl]);
 
   // Video event handlers
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !streamData) return;
+    if (!video) return;
 
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-    const handleDurationChange = () => setDuration(video.duration);
+    const handleTimeUpdate = () => setCurrentTime(video.currentTime || 0);
+    const handleDurationChange = () => setDuration(video.duration || 0);
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     const handleVolumeChange = () => {
-      setVolume(video.volume);
+      setVolume(video.volume || 0);
       setIsMuted(video.muted);
     };
 
@@ -278,7 +294,7 @@ export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }:
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('volumechange', handleVolumeChange);
     };
-  }, [streamData]);
+  }, []);
 
   // Control functions
   const togglePlay = () => {
@@ -295,28 +311,33 @@ export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }:
   const toggleMute = () => {
     const video = videoRef.current;
     if (!video) return;
+
     video.muted = !video.muted;
   };
 
   const handleVolumeChange = (value: number[]) => {
     const video = videoRef.current;
-    if (!video) return;
-    video.volume = value[0];
+    if (!video || !value.length) return;
+
+    video.volume = value[0] || 0;
+    setVolume(value[0] || 0);
   };
 
   const handleSeek = (value: number[]) => {
     const video = videoRef.current;
-    if (!video) return;
-    video.currentTime = value[0];
+    if (!video || !value.length) return;
+
+    video.currentTime = value[0] || 0;
+    setCurrentTime(value[0] || 0);
   };
 
   const toggleFullscreen = () => {
-    const container = videoRef.current?.parentElement;
-    if (!container) return;
+    const video = videoRef.current;
+    if (!video) return;
 
     if (!isFullscreen) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
+      if (video.requestFullscreen) {
+        video.requestFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
@@ -329,7 +350,8 @@ export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }:
   const skip = (seconds: number) => {
     const video = videoRef.current;
     if (!video) return;
-    video.currentTime += seconds;
+
+    video.currentTime = Math.max(0, Math.min(video.duration || 0, video.currentTime + seconds));
   };
 
   const formatTime = (time: number) => {
@@ -338,191 +360,165 @@ export function CustomVideoPlayer({ embedUrl, title, onBack, onExtractStreams }:
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Initialize video player
+  const initializePlayer = async () => {
+    if (useDirectStream) {
+      const stream = await extractStreamUrl(embedUrl);
+      if (stream && stream.currentSource) {
+        setStreamData(stream);
+        console.log('✅ Using direct stream:', stream.currentSource.url);
+      } else {
+        setError('Could not extract direct stream URL');
+        console.log('⚠️ Falling back to iframe embed');
+        setUseDirectStream(false);
+      }
+    }
+    setIsLoading(false);
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96 bg-black text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p>Loading video player...</p>
+      <div className="flex items-center justify-center h-96 bg-black rounded-lg">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-lg">Loading player...</p>
+          <p className="text-sm text-gray-400 mt-2">Extracting stream URLs...</p>
         </div>
       </div>
     );
   }
 
-  if (!useDirectStream || !streamData) {
-    // Fallback to iframe embed
+  if (error) {
     return (
-      <div className="relative w-full h-full bg-black">
-        <iframe
-          src={embedUrl}
-          className="w-full h-full border-0"
-          frameBorder="0"
-          allowFullScreen={true}
-          webkitAllowFullScreen={true}
-          mozAllowFullScreen={true}
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
-          title={title}
-          style={{ 
-            background: '#000',
-            minHeight: '400px'
-          }}
-        />
+      <div className="flex items-center justify-center h-96 bg-black rounded-lg">
+        <div className="text-white text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <p className="text-lg text-red-400">Error loading video</p>
+          <p className="text-sm text-gray-400 mt-2">{error}</p>
+          <button 
+            onClick={() => initializePlayer()}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div 
-      className="relative w-full h-full bg-black group"
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => setShowControls(false)}
-    >
-      {/* Video Element */}
-      <video
-        ref={videoRef}
-        className="w-full h-full object-contain"
-        src={streamData.currentSource?.url}
-        crossOrigin="anonymous"
-        preload="metadata"
-        onClick={togglePlay}
-      />
-
-      {/* Error Message */}
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-white">
-          <div className="text-center">
-            <p className="text-red-400 mb-4">{error}</p>
-            <Button
-              onClick={() => setUseDirectStream(false)}
-              variant="outline"
-              className="bg-white/10 text-white border-white/20"
-            >
-              Use Iframe Player
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Play/Pause Overlay */}
-      {!isPlaying && !isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Button
-            onClick={togglePlay}
-            size="lg"
-            className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-700 text-white"
-          >
-            <Play className="w-8 h-8 fill-current ml-1" />
-          </Button>
-        </div>
-      )}
-
-      {/* Controls */}
-      {showControls && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-          {/* Progress Bar */}
-          <div className="mb-4">
-            <Slider
-              value={[currentTime]}
-              max={duration || 100}
-              step={1}
-              onValueChange={handleSeek}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-white/70 mt-1">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+  if (useDirectStream && streamData && streamData.currentSource) {
+    return (
+      <div 
+        className="relative w-full h-full bg-black rounded-lg overflow-hidden"
+        onMouseEnter={() => setShowControls(true)}
+        onMouseLeave={() => setShowControls(false)}
+      >
+        <video
+          ref={videoRef}
+          className="w-full h-full"
+          poster=""
+          preload="metadata"
+          crossOrigin="anonymous"
+        />
+        
+        {showControls && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+            <div className="flex items-center gap-4 mb-2">
+              <Slider
+                value={[currentTime]}
+                max={duration || 100}
+                step={1}
+                onValueChange={handleSeek}
+                className="flex-1"
+              />
+              <span className="text-white text-sm min-w-[100px]">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
             </div>
-          </div>
-
-          {/* Control Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Button
-                onClick={togglePlay}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/20"
-              >
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              </Button>
-
-              <Button
-                onClick={() => skip(-10)}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/20"
-              >
-                <SkipBack className="w-5 h-5" />
-              </Button>
-
-              <Button
-                onClick={() => skip(10)}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/20"
-              >
-                <SkipForward className="w-5 h-5" />
-              </Button>
-
-              <div className="flex items-center space-x-2">
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => skip(-10)}
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:text-red-400"
+                >
+                  <SkipBack className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  onClick={togglePlay}
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:text-red-400"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </Button>
+                
+                <Button
+                  onClick={() => skip(10)}
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:text-red-400"
+                >
+                  <SkipForward className="w-4 h-4" />
+                </Button>
+                
                 <Button
                   onClick={toggleMute}
-                  variant="ghost"
                   size="sm"
-                  className="text-white hover:bg-white/20"
+                  variant="ghost"
+                  className="text-white hover:text-red-400"
                 >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </Button>
+                
                 <Slider
-                  value={[isMuted ? 0 : volume]}
+                  value={[volume]}
                   max={1}
                   step={0.1}
                   onValueChange={handleVolumeChange}
-                  className="w-24"
+                  className="w-20"
                 />
               </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Button
-                onClick={() => setUseDirectStream(false)}
-                variant="ghost"
-                size="sm"
-                className="text-white/70 hover:bg-white/20 text-xs"
-              >
-                Use Iframe
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/20"
-              >
-                <Settings className="w-5 h-5" />
-              </Button>
-
-              <Button
-                onClick={toggleFullscreen}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white/20"
-              >
-                <Maximize className="w-5 h-5" />
-              </Button>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={toggleFullscreen}
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:text-red-400"
+                >
+                  <Maximize className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:text-red-400"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
+        )}
+      </div>
+    );
+  }
 
-          {/* Stream Info */}
-          <div className="text-xs text-white/50 mt-2 flex justify-between">
-            <span>
-              Stream: {streamData.currentSource?.type.toUpperCase()} • Quality: {streamData.currentSource?.quality}
-            </span>
-            <span>
-              {streamData.sources.length > 1 && `${streamData.sources.length} sources available`}
-            </span>
-          </div>
-        </div>
-      )}
+  // Default to iframe embed if no direct streams are available
+  return (
+    <div className="relative w-full h-full bg-black rounded-lg overflow-hidden">
+      <iframe
+        src={embedUrl}
+        className="w-full h-full"
+        style={{ border: 'none', background: 'black', minHeight: '400px' }}
+        allowFullScreen
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+        title={title}
+      />
     </div>
   );
 } 

@@ -110,7 +110,8 @@ export class RealStreamExtractor {
         // Always use known providers from HAR analysis since CORS blocks iframe access
         console.log('📋 Using known providers from HAR analysis (CORS expected)');
         
-        const tmdbId = embedUrl.match(/embed\/(\d+)/)?.[1];
+        const tmdbMatch = embedUrl.match(/embed\/(\d+)/);
+        const tmdbId = tmdbMatch?.[1];
         if (tmdbId) {
           // These are the real providers found in the HAR file for movie 574475
           // We'll use the same pattern but with the current TMDB ID
@@ -142,7 +143,7 @@ export class RealStreamExtractor {
               if (onclick && onclick.includes('go(')) {
                 // Extract URL from go('URL') function
                 const match = onclick.match(/go\(['"]([^'"]+)['"]\)/);
-                if (match) {
+                if (match && match[1]) {
                   const url = match[1];
                   const provider = this.detectProvider(url);
                   // Only add if not already in providers

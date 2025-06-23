@@ -302,7 +302,7 @@ export class StreamInjector {
    * Handles 2embed.cc redirects and dynamic loading
    */
   static async extractStreamsWithInjection(embedUrl: string): Promise<CapturedStream[]> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       // Create iframe to load the streaming page
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
