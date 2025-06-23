@@ -82,6 +82,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       settingsService.completeSetup();
       setHasUnsavedChanges(false);
       onSetupComplete?.();
+      
+      // Reload the page to refresh content with new API key
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     }
   };
 
@@ -137,181 +142,228 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl bg-black/95 border-red-500/20 text-white backdrop-blur-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl w-[90vw] max-h-[90vh] bg-black/95 border-red-500/20 text-white backdrop-blur-md overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4">
           <DialogTitle className="flex items-center space-x-2 text-2xl">
             <Settings className="w-6 h-6 text-red-500" />
             <span>Streall Settings</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* TMDB API Configuration */}
-          <Card className="bg-gray-900/50 border-gray-700 p-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Key className="w-5 h-5 text-red-500" />
-                <h3 className="text-lg font-semibold">TMDB API Configuration</h3>
-              </div>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto modal-scrollbar smooth-scroll pr-2">
+          <div className="space-y-6">
+            {/* TMDB API Configuration - Desktop Only */}
+            {settingsService.isDesktopApp && (
+              <Card className="bg-gray-900/50 border-gray-700 p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Key className="w-5 h-5 text-red-500" />
+                    <h3 className="text-lg font-semibold">TMDB API Configuration</h3>
+                  </div>
 
-              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="text-blue-200 mb-2">
-                      <strong>Need a TMDB API key?</strong> It's free and takes just a few minutes!
-                    </p>
-                    <ol className="list-decimal list-inside space-y-1 text-blue-100">
-                      <li>Visit <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">TMDB.org</a> and create an account</li>
-                      <li>Go to your account settings → API</li>
-                      <li>Request an API key (it's free for personal use)</li>
-                      <li>Copy your API key and paste it below</li>
-                    </ol>
-                    <Button
-                      size="sm"
-                      className="mt-3 bg-blue-600 hover:bg-blue-700"
-                      onClick={() => window.open('https://www.themoviedb.org/settings/api', '_blank')}
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="text-blue-200 mb-2">
+                        <strong>Need a TMDB API key?</strong> It's free and takes just a few minutes!
+                      </p>
+                      <ol className="list-decimal list-inside space-y-1 text-blue-100">
+                        <li>Visit <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:underline">TMDB.org</a> and create an account</li>
+                        <li>Go to your account settings → API</li>
+                        <li>Request an API key (it's free for personal use)</li>
+                        <li>Copy your API key and paste it below</li>
+                      </ol>
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700"
+                          onClick={() => window.open('https://www.themoviedb.org/signup', '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Sign Up
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-600 text-blue-300 hover:bg-blue-600"
+                          onClick={() => window.open('https://www.themoviedb.org/settings/api', '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Get API Key
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-300">
+                    TMDB API Key
+                  </label>
+                  
+                  <div className="relative">
+                    <Input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={apiKey}
+                      onChange={(e) => handleApiKeyChange(e.target.value)}
+                      placeholder="Enter your TMDB API key..."
+                      className="bg-gray-800 border-gray-600 text-white pr-20"
+                    />
+                    
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                     >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Get API Key
+                      {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+
+                    {validationResult && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        {validationResult.valid ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <X className="w-4 h-4 text-red-500" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {validationResult && !validationResult.valid && (
+                    <p className="text-sm text-red-400">{validationResult.error}</p>
+                  )}
+
+                  <div className="flex space-x-3">
+                    <Button
+                      onClick={validateApiKey}
+                      disabled={!apiKey.trim() || isValidating}
+                      variant="outline"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    >
+                      {isValidating ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4 mr-2" />
+                      )}
+                      Test API Key
                     </Button>
+
+                    {validationResult?.valid && (
+                      <Button
+                        onClick={saveSettings}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Save Settings
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
+            </Card>
+            )}
 
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-300">
-                  TMDB API Key
-                </label>
-                
-                <div className="relative">
-                  <Input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={apiKey}
-                    onChange={(e) => handleApiKeyChange(e.target.value)}
-                    placeholder="Enter your TMDB API key..."
-                    className="bg-gray-800 border-gray-600 text-white pr-20"
-                  />
-                  
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                  >
-                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-
-                  {validationResult && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      {validationResult.valid ? (
-                        <Check className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <X className="w-4 h-4 text-red-500" />
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {validationResult && !validationResult.valid && (
-                  <p className="text-sm text-red-400">{validationResult.error}</p>
-                )}
-
-                <div className="flex space-x-3">
-                  <Button
-                    onClick={validateApiKey}
-                    disabled={!apiKey.trim() || isValidating}
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  >
-                    {isValidating ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Check className="w-4 h-4 mr-2" />
-                    )}
-                    Test API Key
-                  </Button>
-
-                  {validationResult?.valid && (
-                    <Button
-                      onClick={saveSettings}
-                      className="bg-green-600 hover:bg-green-700"
+            {/* Web Version Notice */}
+            {!settingsService.isDesktopApp && (
+              <Card className="bg-blue-900/20 border-blue-500/30 p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Info className="w-5 h-5 text-blue-400" />
+                    <h3 className="text-lg font-semibold text-blue-300">Web Version Settings</h3>
+                  </div>
+                  <p className="text-blue-100">
+                    You're using the web version of Streall. API configuration is handled through environment variables by the developer. 
+                    The desktop version offers more customization options including personal API key management.
+                  </p>
+                  <div className="flex items-center space-x-2 text-sm text-blue-200">
+                    <span>Want more control?</span>
+                    <a 
+                      href="#" 
+                      className="text-blue-300 hover:text-blue-100 underline"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Could add download link for desktop version
+                      }}
                     >
-                      <Check className="w-4 h-4 mr-2" />
-                      Save Settings
-                    </Button>
-                  )}
+                      Try the desktop app
+                    </a>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            )}
 
-          {/* App Information */}
-          <Card className="bg-gray-900/50 border-gray-700 p-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">App Information</h3>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-400">Version:</span>
-                  <span className="ml-2 text-white">{settingsService.appVersion}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Platform:</span>
-                  <span className="ml-2 text-white">
-                    {settingsService.isDesktopApp ? 'Desktop' : 'Web'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Setup Status:</span>
-                  <span className={`ml-2 ${settingsService.isSetupCompleted ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {settingsService.isSetupCompleted ? 'Complete' : 'Pending'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400">API Key:</span>
-                  <span className={`ml-2 ${settingsService.tmdbApiKey ? 'text-green-400' : 'text-red-400'}`}>
-                    {settingsService.tmdbApiKey ? 'Configured' : 'Not Set'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Import/Export Settings */}
-          {settingsService.isDesktopApp && (
+            {/* App Information */}
             <Card className="bg-gray-900/50 border-gray-700 p-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Backup & Restore</h3>
+                <h3 className="text-lg font-semibold">App Information</h3>
                 
-                <div className="flex space-x-3">
-                  <Button
-                    onClick={exportSettings}
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Settings
-                  </Button>
-                  
-                  <Button
-                    onClick={importSettings}
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import Settings
-                  </Button>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-400">Version:</span>
+                    <span className="ml-2 text-white">{settingsService.appVersion}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Platform:</span>
+                    <span className="ml-2 text-white">
+                      {settingsService.isDesktopApp ? 'Desktop' : 'Web'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Setup Status:</span>
+                    <span className={`ml-2 ${settingsService.isSetupCompleted ? 'text-green-400' : 'text-yellow-400'}`}>
+                      {settingsService.isSetupCompleted ? 'Complete' : 'Pending'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">API Key:</span>
+                    <span className={`ml-2 ${settingsService.tmdbApiKey ? 'text-green-400' : 'text-red-400'}`}>
+                      {settingsService.tmdbApiKey ? 'Configured' : 'Not Set'}
+                    </span>
+                  </div>
                 </div>
-                
-                <p className="text-xs text-gray-500">
-                  Export your settings to backup your configuration or transfer to another device.
-                </p>
               </div>
             </Card>
-          )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-700">
+            {/* Import/Export Settings */}
+            {settingsService.isDesktopApp && (
+              <Card className="bg-gray-900/50 border-gray-700 p-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Backup & Restore</h3>
+                  
+                  <div className="flex space-x-3">
+                    <Button
+                      onClick={exportSettings}
+                      variant="outline"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export Settings
+                    </Button>
+                    
+                    <Button
+                      onClick={importSettings}
+                      variant="outline"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import Settings
+                    </Button>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500">
+                    Export your settings to backup your configuration or transfer to another device.
+                  </p>
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* Fixed Footer */}
+        <div className="flex-shrink-0 border-t border-gray-700 pt-4 mt-4">
+          <div className="flex justify-end space-x-3">
             <Button
               onClick={handleClose}
               variant="outline"

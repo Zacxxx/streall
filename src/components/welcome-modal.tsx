@@ -1,7 +1,9 @@
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import React, { useState } from 'react';
+import { Dialog, DialogContent } from './ui/dialog';
 import { Button } from './ui/button';
-import { Play, Film, Settings, Download, Sparkles } from 'lucide-react';
+import { Input } from './ui/input';
+import { Play, ExternalLink, Eye, EyeOff, Check, Loader2, AlertCircle } from 'lucide-react';
+import { settingsService } from '../services/settings-service';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -14,137 +16,249 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   onClose,
   onOpenSettings
 }) => {
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<{
+    valid: boolean;
+    error?: string;
+  } | null>(null);
+
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value);
+    setValidationResult(null);
+  };
+
+  const validateAndSave = async () => {
+    if (!apiKey.trim()) {
+      setValidationResult({ valid: false, error: 'Please enter your API key' });
+      return;
+    }
+
+    setIsValidating(true);
+    try {
+      const result = await settingsService.testApiKey(apiKey.trim());
+      setValidationResult(result);
+      
+      if (result.valid) {
+        // Save the API key and complete setup
+        settingsService.setTmdbApiKey(apiKey.trim());
+        settingsService.completeSetup();
+        
+        // Show success briefly then reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    } catch (error) {
+      setValidationResult({ 
+        valid: false, 
+        error: 'Failed to validate API key. Please try again.' 
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const openTMDBSettings = () => {
+    window.open('https://www.themoviedb.org/settings/api', '_blank');
+  };
+
+  const openTMDBSignup = () => {
+    window.open('https://www.themoviedb.org/signup', '_blank');
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="max-w-2xl bg-black/95 border-red-500/20 text-white backdrop-blur-md">
-        <DialogHeader className="text-center space-y-6">
-          <div className="flex justify-center">
-            <div className="relative">
-              <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-600 to-red-800 rounded-full">
-                <Play className="w-8 h-8 text-white" />
+      <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] bg-neutral-900 border-0 text-white p-0 overflow-hidden flex flex-col">
+        {/* Hero Section */}
+        <div className="relative bg-gradient-to-r from-red-600 via-red-700 to-red-800 px-8 py-6 flex-shrink-0">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-black/30 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <Play className="w-7 h-7 text-white" fill="white" />
               </div>
-              <div className="absolute -top-2 -right-2">
-                <Sparkles className="w-6 h-6 text-yellow-400 animate-pulse" />
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
-              Welcome to Streall!
-            </DialogTitle>
-            <DialogDescription className="text-gray-300 text-lg mt-2">
-              Your premium streaming experience starts here
-            </DialogDescription>
-          </div>
-        </DialogHeader>
-
-        <div className="space-y-6 py-6">
-          {/* App Introduction */}
-          <div className="text-center space-y-4">
-            <h3 className="text-xl font-semibold text-red-400">
-              🎬 What is Streall?
-            </h3>
-            <p className="text-gray-300 leading-relaxed">
-              Streall is a powerful desktop streaming application that gives you access to millions of movies and TV shows. 
-              Built with modern technology and designed for the ultimate viewing experience.
-            </p>
-          </div>
-
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-              <Film className="w-8 h-8 text-red-500 mb-2" />
-              <h4 className="font-semibold text-white mb-1">Vast Library</h4>
-              <p className="text-sm text-gray-400">
-                Access millions of movies and TV shows powered by TMDB
-              </p>
-            </div>
-            
-            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-              <Download className="w-8 h-8 text-blue-500 mb-2" />
-              <h4 className="font-semibold text-white mb-1">Desktop Native</h4>
-              <p className="text-sm text-gray-400">
-                Optimized desktop experience with offline capabilities
-              </p>
-            </div>
-            
-            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-              <Settings className="w-8 h-8 text-green-500 mb-2" />
-              <h4 className="font-semibold text-white mb-1">Customizable</h4>
-              <p className="text-sm text-gray-400">
-                Personalize your experience with custom settings
-              </p>
-            </div>
-          </div>
-
-          {/* Setup Required Notice */}
-          <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <Settings className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="font-semibold text-yellow-300 mb-1">
-                  🔧 Quick Setup Required
-                </h4>
-                <p className="text-sm text-yellow-100 mb-3">
-                  To get started, you'll need to configure your TMDB API key. 
-                  This ensures you have access to the latest movie and TV show data.
-                </p>
-                <p className="text-xs text-yellow-200">
-                  Don't have an API key? No worries! We'll guide you through getting one for free.
-                </p>
+                <h1 className="text-3xl font-bold text-white">Welcome to Streall</h1>
+                <p className="text-red-100 text-lg">Your premium streaming experience</p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Benefits */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-gray-200">✨ What you'll get:</h4>
-            <ul className="space-y-2 text-sm text-gray-300">
-              <li className="flex items-center space-x-2">
-                <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                <span>Real-time access to the latest movies and TV shows</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                <span>High-quality streaming with multiple sources</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                <span>Advanced search and discovery features</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                <span>Personalized recommendations and watchlists</span>
-              </li>
-            </ul>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto modal-scrollbar smooth-scroll">
+          <div className="px-8 py-6 space-y-6">
+            {/* Quick Setup Section */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-white">Quick Setup Required</h2>
+              <p className="text-neutral-300 leading-relaxed">
+                To access our vast library of movies and TV shows, you'll need a free TMDB API key. 
+                This takes just 2 minutes and gives you access to millions of titles.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                onClick={openTMDBSignup}
+                className="h-12 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 justify-start"
+                variant="outline"
+              >
+                <ExternalLink className="w-5 h-5 mr-3" />
+                <div className="text-left">
+                  <div className="font-medium">New to TMDB?</div>
+                  <div className="text-sm text-neutral-400">Create free account</div>
+                </div>
+              </Button>
+
+              <Button
+                onClick={openTMDBSettings}
+                className="h-12 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 justify-start"
+                variant="outline"
+              >
+                <ExternalLink className="w-5 h-5 mr-3" />
+                <div className="text-left">
+                  <div className="font-medium">Have an account?</div>
+                  <div className="text-sm text-neutral-400">Get your API key</div>
+                </div>
+              </Button>
+            </div>
+
+            {/* API Key Input Section */}
+            <div className="space-y-4 bg-neutral-800/50 rounded-lg p-6">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <h3 className="text-lg font-medium text-white">Enter Your API Key</h3>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="relative">
+                  <Input
+                    type={showApiKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={(e) => handleApiKeyChange(e.target.value)}
+                    placeholder="Paste your TMDB API key here..."
+                    className="bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400 pr-20 h-12 text-base"
+                  />
+                  
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-12 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                  >
+                    {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+
+                  {validationResult && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      {validationResult.valid ? (
+                        <Check className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-red-500" />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {validationResult && !validationResult.valid && (
+                  <div className="flex items-center space-x-2 text-red-400 text-sm">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{validationResult.error}</span>
+                  </div>
+                )}
+
+                {validationResult?.valid && (
+                  <div className="flex items-center space-x-2 text-green-400 text-sm">
+                    <Check className="w-4 h-4" />
+                    <span>API key validated successfully! Reloading app...</span>
+                  </div>
+                )}
+
+                <Button
+                  onClick={validateAndSave}
+                  disabled={!apiKey.trim() || isValidating || validationResult?.valid}
+                  className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-medium text-base"
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Validating...
+                    </>
+                  ) : validationResult?.valid ? (
+                    <>
+                      <Check className="w-5 h-5 mr-2" />
+                      Setup Complete
+                    </>
+                  ) : (
+                    'Validate & Start Streaming'
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* What You Get Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-white">What you get with Streall:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <div className="font-medium text-white">Massive Library</div>
+                    <div className="text-sm text-neutral-400">Millions of movies and TV shows</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <div className="font-medium text-white">High Quality</div>
+                    <div className="text-sm text-neutral-400">HD streaming with multiple sources</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <div className="font-medium text-white">Always Updated</div>
+                    <div className="text-sm text-neutral-400">Latest releases and trending content</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-700">
-          <Button
-            onClick={onOpenSettings}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 transition-colors"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Set Up API Key
-          </Button>
-          
-          <Button
-            onClick={onClose}
-            variant="outline"
-            className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white py-3 transition-colors"
-          >
-            Skip for Now
-          </Button>
-        </div>
+        {/* Fixed Footer */}
+        <div className="flex-shrink-0 border-t border-neutral-700 bg-neutral-900">
+          <div className="px-8 py-4 space-y-4">
+            {/* Footer Actions */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={onOpenSettings}
+                variant="outline"
+                className="flex-1 h-11 border-neutral-600 text-neutral-300 hover:bg-neutral-800 hover:text-white"
+              >
+                Advanced Settings
+              </Button>
+              
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="flex-1 h-11 border-neutral-600 text-neutral-300 hover:bg-neutral-800 hover:text-white"
+              >
+                Skip Setup
+              </Button>
+            </div>
 
-        {/* Footer */}
-        <div className="text-center pt-4 border-t border-gray-800">
-          <p className="text-xs text-gray-500">
-            Streall v1.0.0 • Built with ❤️ for movie lovers
-          </p>
+            {/* Fine Print */}
+            <div className="text-center">
+              <p className="text-xs text-neutral-500">
+                TMDB API key is free for personal use • Your key is stored securely on your device
+              </p>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

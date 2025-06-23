@@ -175,22 +175,7 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
             <Search className="w-5 h-5 group-hover:text-red-400 transition-colors" />
           </motion.button>
 
-          {/* Settings Button - Desktop Only */}
-          {onSettings && (
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={onSettings}
-              className="p-2 text-slate-300 hover:text-white transition-all duration-300 rounded-full hover:bg-white/10 group"
-              style={{
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)'
-              }}
-              title="Settings"
-            >
-              <Settings className="w-5 h-5 group-hover:text-red-400 transition-colors" />
-            </motion.button>
-          )}
+
 
           {/* Notifications */}
           <motion.button 
@@ -247,33 +232,48 @@ export function NetflixNavbar({ onSearch, onHome, onSettings }: NetflixNavbarPro
                 }}
               >
                 <div className="py-2">
-                  {[
-                    { label: 'Profile', icon: User },
-                    { label: 'Settings', icon: null },
-                    { label: 'My List', icon: Heart, path: '/watchlist' }
-                  ].map((menuItem) => (
-                    <motion.div
-                      key={menuItem.label}
-                      whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-                      className="transition-colors duration-200"
+                  {/* Profile */}
+                  <motion.div
+                    whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                    className="transition-colors duration-200"
+                  >
+                    <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors">
+                      <User className="w-4 h-4" />
+                      Profile
+                    </button>
+                  </motion.div>
+
+                  {/* Settings - Always available */}
+                  <motion.div
+                    whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                    className="transition-colors duration-200"
+                  >
+                    <button 
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onSettings?.();
+                      }}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
                     >
-                      {menuItem.path ? (
-                        <Link
-                          to={menuItem.path}
-                          className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
-                          onClick={() => setShowProfileMenu(false)}
-                        >
-                          {menuItem.icon && <menuItem.icon className="w-4 h-4" />}
-                          {menuItem.label}
-                        </Link>
-                      ) : (
-                        <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors">
-                          {menuItem.icon && <menuItem.icon className="w-4 h-4" />}
-                          {menuItem.label}
-                        </button>
-                      )}
-                    </motion.div>
-                  ))}
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </button>
+                  </motion.div>
+
+                  {/* My List */}
+                  <motion.div
+                    whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                    className="transition-colors duration-200"
+                  >
+                    <Link
+                      to="/watchlist"
+                      className="flex items-center gap-3 w-full px-4 py-3 text-left text-slate-300 hover:text-white transition-colors"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
+                      <Heart className="w-4 h-4" />
+                      My List
+                    </Link>
+                  </motion.div>
                   
                   <hr className="border-slate-700/50 my-2" />
                   

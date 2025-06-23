@@ -30,7 +30,7 @@ const config = {
   },
   
   // Installer script
-  installerScript: path.join(__dirname, 'installer.js'),
+  installerScript: path.join(__dirname, 'installer.cjs'),
   
   // Package info
   description: 'Streall - Premium Desktop Streaming Experience',
@@ -160,7 +160,7 @@ async function createInstallerPackage(portableZipPath, outputPath, platform) {
   
   try {
     // Copy installer script
-    const installerDestPath = path.join(tempInstallerDir, 'installer.js');
+    const installerDestPath = path.join(tempInstallerDir, 'installer.cjs');
     await fs.copy(config.installerScript, installerDestPath);
     
     // Copy portable ZIP
@@ -173,12 +173,12 @@ async function createInstallerPackage(portableZipPath, outputPath, platform) {
       name: `${config.appName.toLowerCase()}-installer`,
       version: config.version,
       description: `${config.description} - Installer`,
-      main: 'installer.js',
+      main: 'installer.cjs',
       bin: {
-        [`${config.appName.toLowerCase()}-install`]: 'installer.js'
+        [`${config.appName.toLowerCase()}-install`]: 'installer.cjs'
       },
       files: [
-        'installer.js',
+        'installer.cjs',
         `${config.appName.toLowerCase()}-portable.zip`
       ],
       dependencies: {
@@ -206,7 +206,7 @@ ${config.appName.toLowerCase()}-install
 Or run directly:
 
 \`\`\`bash
-node installer.js
+node installer.cjs
 \`\`\`
 
 ## What this installer does:
@@ -313,9 +313,9 @@ async function packageForDistribution() {
       platform: platform,
       buildDate: new Date().toISOString(),
       packages: packages,
-      installation: {
-        installer: `Extract and run: node installer.js`,
-        portable: `Extract and run the application directly`,
+             installation: {
+         installer: `Extract and run: node installer.cjs`,
+         portable: `Extract and run the application directly`,
         requirements: {
           os: platform === 'win32' ? 'Windows 10+' : platform === 'darwin' ? 'macOS 10.14+' : 'Linux 64-bit',
           memory: '4GB RAM recommended',
@@ -346,10 +346,10 @@ async function packageForDistribution() {
     console.log(`\n📁 Output directory: ${config.outputDir}`);
     console.log('\n🚀 Ready for distribution!\n');
     
-    console.log('💡 Usage Instructions:');
-    console.log('   • Installer: Extract and run "node installer.js"');
-    console.log('   • Portable: Extract and run the app directly');
-    console.log('   • Share the appropriate package with users\n');
+         console.log('💡 Usage Instructions:');
+     console.log('   • Installer: Extract and run "node installer.cjs"');
+     console.log('   • Portable: Extract and run the app directly');
+     console.log('   • Share the appropriate package with users\n');
     
   } catch (error) {
     console.error('\n❌ Packaging failed:', error.message);

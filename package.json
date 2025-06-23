@@ -5,7 +5,7 @@
   "description": "A streaming content browser application",
   "author": "Streall Team",
   "type": "module",
-  "main": "electron/main.js",
+  "main": "electron/main.cjs",
   "homepage": "./",
   "scripts": {
     "dev": "vite",

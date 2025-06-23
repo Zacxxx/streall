@@ -48,7 +48,7 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
           onViewChange={() => {}}
           onSearch={handleSearch}
           onHome={handleHome}
-          onSettings={settingsService.isDesktopApp ? handleSettings : undefined}
+          onSettings={handleSettings}
         />
       )}
       
