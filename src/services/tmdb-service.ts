@@ -85,6 +85,62 @@ class TMDBService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private cacheTimeout = 30 * 60 * 1000; // 30 minutes
 
+  // Genre mapping cache for performance
+  private static genreMap: Map<number, string> = new Map();
+  
+  // Initialize genre mappings
+  private static initializeGenreMap() {
+    if (this.genreMap.size === 0) {
+      // Movie genres
+      const movieGenres = [
+        { id: 28, name: 'Action' },
+        { id: 12, name: 'Adventure' },
+        { id: 16, name: 'Animation' },
+        { id: 35, name: 'Comedy' },
+        { id: 80, name: 'Crime' },
+        { id: 99, name: 'Documentary' },
+        { id: 18, name: 'Drama' },
+        { id: 10751, name: 'Family' },
+        { id: 14, name: 'Fantasy' },
+        { id: 36, name: 'History' },
+        { id: 27, name: 'Horror' },
+        { id: 10402, name: 'Music' },
+        { id: 9648, name: 'Mystery' },
+        { id: 10749, name: 'Romance' },
+        { id: 878, name: 'Science Fiction' },
+        { id: 10770, name: 'TV Movie' },
+        { id: 53, name: 'Thriller' },
+        { id: 10752, name: 'War' },
+        { id: 37, name: 'Western' }
+      ];
+      
+      // TV genres (some overlap with movies)
+      const tvGenres = [
+        { id: 10759, name: 'Action & Adventure' },
+        { id: 16, name: 'Animation' },
+        { id: 35, name: 'Comedy' },
+        { id: 80, name: 'Crime' },
+        { id: 99, name: 'Documentary' },
+        { id: 18, name: 'Drama' },
+        { id: 10751, name: 'Family' },
+        { id: 10762, name: 'Kids' },
+        { id: 9648, name: 'Mystery' },
+        { id: 10763, name: 'News' },
+        { id: 10764, name: 'Reality' },
+        { id: 10765, name: 'Sci-Fi & Fantasy' },
+        { id: 10766, name: 'Soap' },
+        { id: 10767, name: 'Talk' },
+        { id: 10768, name: 'War & Politics' },
+        { id: 37, name: 'Western' }
+      ];
+      
+      // Populate the map
+      [...movieGenres, ...tvGenres].forEach(genre => {
+        this.genreMap.set(genre.id, genre.name);
+      });
+    }
+  }
+
   // Get the current API key from settings or fallback
   private getApiKey(): string {
     const settingsApiKey = settingsService.tmdbApiKey;
@@ -146,6 +202,9 @@ class TMDBService {
 
   // Convert TMDB item to our format
   private convertTMDBItem(item: any, type?: 'movie' | 'tv'): ContentItem {
+    // Initialize genre map if needed
+    TMDBService.initializeGenreMap();
+    
     // Enhanced type detection logic
     let finalType: 'movie' | 'tv';
     
@@ -174,6 +233,18 @@ class TMDBService {
     // Use IMDB ID from external_ids if available, or from item directly
     const imdbId = item.external_ids?.imdb_id || item.imdb_id || null;
     
+    // Enhanced genre handling - convert IDs to names when genres array is empty
+    let genreNames: string[] = [];
+    if (item.genres && item.genres.length > 0) {
+      // Full genre objects available
+      genreNames = item.genres.map((g: any) => g.name);
+    } else if (item.genre_ids && item.genre_ids.length > 0) {
+      // Only genre IDs available - convert to names
+      genreNames = item.genre_ids
+        .map((id: number) => TMDBService.genreMap.get(id))
+        .filter((name: string | undefined) => name) as string[];
+    }
+    
     const contentItem: ContentItem = {
       id: item.id,
       tmdb_id: item.id,
@@ -190,7 +261,7 @@ class TMDBService {
       rating: item.vote_average || 0,
       voteCount: item.vote_count || 0,
       popularity: item.popularity || 0,
-      genres: item.genres ? item.genres.map((g: any) => g.name) : [],
+      genres: genreNames,
       genreIds: item.genre_ids || [],
       runtime: item.runtime || null,
       seasons: item.number_of_seasons || null,

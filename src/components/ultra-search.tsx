@@ -240,31 +240,31 @@ export const UltraSearch: React.FC = () => {
               {/* Advanced Filters */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <Select value={type} onValueChange={(value: 'all' | 'movie' | 'tv') => setType(value)}>
-                  <SelectTrigger className="bg-gray-900/50 border-gray-700">
+                  <SelectTrigger className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 focus:ring-red-500 focus:border-red-500">
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="movie">Movies</SelectItem>
-                    <SelectItem value="tv">TV Shows</SelectItem>
+                  <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                    <SelectItem value="all" className="hover:bg-slate-700 focus:bg-slate-700 text-white">All Types</SelectItem>
+                    <SelectItem value="movie" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Movies</SelectItem>
+                    <SelectItem value="tv" className="hover:bg-slate-700 focus:bg-slate-700 text-white">TV Shows</SelectItem>
                   </SelectContent>
                 </Select>
 
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="bg-gray-900/50 border-gray-700">
+                  <SelectTrigger className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 focus:ring-red-500 focus:border-red-500">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="popularity">Popularity</SelectItem>
-                    <SelectItem value="rating">Rating</SelectItem>
-                    <SelectItem value="year">Release Date</SelectItem>
-                    <SelectItem value="title">Title</SelectItem>
+                  <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                    <SelectItem value="popularity" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Popularity</SelectItem>
+                    <SelectItem value="rating" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Rating</SelectItem>
+                    <SelectItem value="year" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Release Date</SelectItem>
+                    <SelectItem value="title" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Title</SelectItem>
                   </SelectContent>
                 </Select>
 
                 <Button
                   variant="outline"
-                  className="bg-gray-900/50 border-gray-700 hover:bg-gray-800"
+                  className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500"
                   onClick={() => {
                     setQuery('');
                     setResults([]);

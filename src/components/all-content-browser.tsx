@@ -49,11 +49,27 @@ export function AllContentBrowser({
   const [yearMax, setYearMax] = useState<number | undefined>();
   const [itemsPerPage, setItemsPerPage] = useState(48);
   
-  // Available genres
+  // Available genres with their TMDB IDs
   const genres = [
-    'Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
-    'Drama', 'Family', 'Fantasy', 'History', 'Horror', 'Music', 'Mystery',
-    'Romance', 'Sci-Fi', 'Sport', 'Thriller', 'War', 'Western'
+    { name: 'Action', movieId: 28, tvId: 10759 },
+    { name: 'Adventure', movieId: 12, tvId: 10759 },
+    { name: 'Animation', movieId: 16, tvId: 16 },
+    { name: 'Comedy', movieId: 35, tvId: 35 },
+    { name: 'Crime', movieId: 80, tvId: 80 },
+    { name: 'Documentary', movieId: 99, tvId: 99 },
+    { name: 'Drama', movieId: 18, tvId: 18 },
+    { name: 'Family', movieId: 10751, tvId: 10751 },
+    { name: 'Fantasy', movieId: 14, tvId: 10765 },
+    { name: 'History', movieId: 36, tvId: 36 },
+    { name: 'Horror', movieId: 27, tvId: 27 },
+    { name: 'Music', movieId: 10402, tvId: 10402 },
+    { name: 'Mystery', movieId: 9648, tvId: 9648 },
+    { name: 'Romance', movieId: 10749, tvId: 10749 },
+    { name: 'Sci-Fi', movieId: 878, tvId: 10765 },
+    { name: 'Sport', movieId: 9648, tvId: 9648 },
+    { name: 'Thriller', movieId: 53, tvId: 53 },
+    { name: 'War', movieId: 10752, tvId: 10752 },
+    { name: 'Western', movieId: 37, tvId: 37 }
   ];
 
   // TV show specific options
@@ -172,9 +188,19 @@ export function AllContentBrowser({
       
       // Filter by genre if specified
       if (genre && genre !== 'all') {
-        results = results.filter(item => 
-          item.genres.some(g => g.toLowerCase().includes(genre.toLowerCase()))
-        );
+        // Find the genre object with the matching name
+        const genreObj = genres.find(g => g.name.toLowerCase() === genre.toLowerCase());
+        
+        results = results.filter(item => {
+          // Check both genre names and genre IDs for maximum compatibility
+          const hasGenreByName = item.genres && item.genres.length > 0 && 
+            item.genres.some(g => g.toLowerCase().includes(genre.toLowerCase()));
+          
+          const hasGenreById = genreObj && item.genreIds && item.genreIds.length > 0 && 
+            item.genreIds.includes(item.type === 'movie' ? genreObj.movieId : genreObj.tvId);
+          
+          return hasGenreByName || hasGenreById;
+        });
       }
       
       // Filter by year range
@@ -370,13 +396,13 @@ export function AllContentBrowser({
           className="bg-slate-900/50 backdrop-blur-sm rounded-lg p-6 mb-8 border border-slate-700"
         >
         <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-5 h-5 text-primary" />
+          <Filter className="w-5 h-5 text-red-500" />
           <h3 className="text-lg font-semibold text-white">Filters</h3>
           <Button
             variant="outline"
             size="sm"
             onClick={clearFilters}
-            className="ml-auto"
+            className="ml-auto bg-slate-800 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500"
           >
             Clear All
           </Button>
@@ -387,13 +413,13 @@ export function AllContentBrowser({
           <div>
             <label className="text-sm font-medium text-gray-300 mb-2 block">Type</label>
             <Select value={type} onValueChange={(value: any) => setType(value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 focus:ring-red-500 focus:border-red-500">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="movie">Movies</SelectItem>
-                <SelectItem value="tv">TV Shows</SelectItem>
+              <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                <SelectItem value="all" className="hover:bg-slate-700 focus:bg-slate-700 text-white">All</SelectItem>
+                <SelectItem value="movie" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Movies</SelectItem>
+                <SelectItem value="tv" className="hover:bg-slate-700 focus:bg-slate-700 text-white">TV Shows</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -402,10 +428,10 @@ export function AllContentBrowser({
           <div>
             <label className="text-sm font-medium text-gray-300 mb-2 block">Sort</label>
             <Select value={sort} onValueChange={(value: any) => setSort(value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 focus:ring-red-500 focus:border-red-500">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-slate-800 border-slate-600 text-white">
                 {(type === 'tv' ? tvSortOptions : type === 'movie' ? movieSortOptions : [
                   { value: 'recent', label: 'Most Recent' },
                   { value: 'popular', label: 'Most Popular' },
@@ -413,7 +439,7 @@ export function AllContentBrowser({
                   { value: 'alphabetical', label: 'A-Z' },
                   { value: 'random', label: 'Random' }
                 ]).map(option => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="hover:bg-slate-700 focus:bg-slate-700 text-white">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -425,13 +451,13 @@ export function AllContentBrowser({
           <div>
             <label className="text-sm font-medium text-gray-300 mb-2 block">Genre</label>
             <Select value={genre} onValueChange={setGenre}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 focus:ring-red-500 focus:border-red-500">
                 <SelectValue placeholder="All Genres" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Genres</SelectItem>
+              <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                <SelectItem value="all" className="hover:bg-slate-700 focus:bg-slate-700 text-white">All Genres</SelectItem>
                 {genres.map(g => (
-                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                  <SelectItem key={g.name} value={g.name} className="hover:bg-slate-700 focus:bg-slate-700 text-white">{g.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -445,7 +471,7 @@ export function AllContentBrowser({
               placeholder="1900"
               value={yearMin || ''}
               onChange={(e) => setYearMin(e.target.value ? parseInt(e.target.value) : undefined)}
-              className="bg-slate-800 border-slate-700"
+              className="bg-slate-800 border-slate-600 text-white placeholder-gray-400 focus:ring-red-500 focus:border-red-500"
             />
           </div>
           
@@ -456,7 +482,7 @@ export function AllContentBrowser({
               placeholder="2024"
               value={yearMax || ''}
               onChange={(e) => setYearMax(e.target.value ? parseInt(e.target.value) : undefined)}
-              className="bg-slate-800 border-slate-700"
+              className="bg-slate-800 border-slate-600 text-white placeholder-gray-400 focus:ring-red-500 focus:border-red-500"
             />
           </div>
 
@@ -464,18 +490,18 @@ export function AllContentBrowser({
           <div>
             <label className="text-sm font-medium text-gray-300 mb-2 block">Per Page</label>
             <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(parseInt(value))}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 focus:ring-red-500 focus:border-red-500">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="24">24</SelectItem>
-                <SelectItem value="48">48</SelectItem>
-                <SelectItem value="96">96</SelectItem>
-                <SelectItem value="144">144</SelectItem>
+              <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                <SelectItem value="24" className="hover:bg-slate-700 focus:bg-slate-700 text-white">24</SelectItem>
+                <SelectItem value="48" className="hover:bg-slate-700 focus:bg-slate-700 text-white">48</SelectItem>
+                <SelectItem value="96" className="hover:bg-slate-700 focus:bg-slate-700 text-white">96</SelectItem>
+                <SelectItem value="144" className="hover:bg-slate-700 focus:bg-slate-700 text-white">144</SelectItem>
               </SelectContent>
             </Select>
-                      </div>
           </div>
+        </div>
         </motion.div>
 
               {/* View Controls */}
@@ -490,6 +516,10 @@ export function AllContentBrowser({
             variant={viewMode === 'grid' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewMode('grid')}
+            className={viewMode === 'grid' 
+              ? 'bg-red-600 text-white hover:bg-red-700' 
+              : 'bg-slate-800 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500'
+            }
           >
             <Grid className="w-4 h-4" />
           </Button>
@@ -497,6 +527,10 @@ export function AllContentBrowser({
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewMode('list')}
+            className={viewMode === 'list' 
+              ? 'bg-red-600 text-white hover:bg-red-700' 
+              : 'bg-slate-800 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500'
+            }
           >
             <List className="w-4 h-4" />
           </Button>
@@ -504,7 +538,7 @@ export function AllContentBrowser({
             variant="outline"
             size="sm"
             onClick={randomizePage}
-            className="ml-4"
+            className="ml-4 bg-slate-800 border-slate-600 text-white hover:bg-slate-700 hover:border-slate-500"
           >
             <Shuffle className="w-4 h-4 mr-2" />
             Random Page

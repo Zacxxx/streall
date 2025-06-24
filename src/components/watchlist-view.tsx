@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Grid, List, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import NetflixCard from '@/components/netflix-card';
 import { watchlistService, type WatchlistItem } from '@/services/watchlist-service';
 import { type ContentItem } from '@/services/tmdb-service';
@@ -205,17 +205,27 @@ export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
 
             {/* Type Filter */}
             <Select value={filterType} onValueChange={(value: 'all' | 'movie' | 'tv') => setFilterType(value)}>
-              <option value="all">All Types</option>
-              <option value="movie">Movies</option>
-              <option value="tv">TV Shows</option>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 focus:ring-red-500 focus:border-red-500 min-w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                <SelectItem value="all" className="hover:bg-slate-700 focus:bg-slate-700 text-white">All Types</SelectItem>
+                <SelectItem value="movie" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Movies</SelectItem>
+                <SelectItem value="tv" className="hover:bg-slate-700 focus:bg-slate-700 text-white">TV Shows</SelectItem>
+              </SelectContent>
             </Select>
 
             {/* Sort Options */}
             <Select value={sortBy} onValueChange={(value: 'recent' | 'alphabetical' | 'year' | 'rating') => setSortBy(value)}>
-              <option value="recent">Recently Added</option>
-              <option value="alphabetical">Alphabetical</option>
-              <option value="year">By Year</option>
-              <option value="rating">By Rating</option>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700 focus:ring-red-500 focus:border-red-500 min-w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                <SelectItem value="recent" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Recently Added</SelectItem>
+                <SelectItem value="alphabetical" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Alphabetical</SelectItem>
+                <SelectItem value="year" className="hover:bg-slate-700 focus:bg-slate-700 text-white">By Year</SelectItem>
+                <SelectItem value="rating" className="hover:bg-slate-700 focus:bg-slate-700 text-white">By Rating</SelectItem>
+              </SelectContent>
             </Select>
           </div>
         </motion.div>
