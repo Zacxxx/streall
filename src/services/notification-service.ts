@@ -43,7 +43,7 @@ class NotificationService {
       version: '1.0.6',
       title: 'Enhanced Stream Extraction & UI Improvements',
       description: 'Major improvements to stream extraction and user interface',
-      date: '2024-12-29',
+      date: '2025-06-24',
       type: 'major',
       changes: [
         'Added enhanced 2embed.cc extraction system',
@@ -61,7 +61,7 @@ class NotificationService {
       version: '1.0.5',
       title: 'Content Discovery & Search',
       description: 'Enhanced content discovery with better search and filtering',
-      date: '2024-12-20',
+      date: '2025-06-24',
       type: 'feature',
       changes: [
         'Improved search functionality',
@@ -77,7 +77,7 @@ class NotificationService {
       version: '1.0.4',
       title: 'Watchlist & Profile System',
       description: 'Added watchlist functionality and user profiles',
-      date: '2024-12-15',
+      date: '2025-06-24',
       type: 'feature',
       changes: [
         'Added watchlist functionality',

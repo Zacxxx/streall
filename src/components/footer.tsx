@@ -218,7 +218,7 @@ export function Footer({
         <div className="mt-12 pt-8 border-t border-slate-700/50">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6 text-sm text-slate-400">
-              <span>© 2024 Streall - Open Source Project</span>
+              <span>© 2025 Streall </span>
               <span className="hidden md:inline">•</span>
               <span className="hidden md:inline">Version {settingsService.appVersion}</span>
             </div>

@@ -479,7 +479,7 @@ export function AllContentBrowser({
             <label className="text-sm font-medium text-gray-300 mb-2 block">To Year</label>
             <Input
               type="number"
-              placeholder="2024"
+              placeholder="2025"
               value={yearMax || ''}
               onChange={(e) => setYearMax(e.target.value ? parseInt(e.target.value) : undefined)}
               className="bg-slate-800 border-slate-600 text-white placeholder-gray-400 focus:ring-red-500 focus:border-red-500"
