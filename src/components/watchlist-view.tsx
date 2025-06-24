@@ -63,11 +63,11 @@ export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
 
   const handlePlay = (item: WatchlistItem) => {
     if (onPlayContent) {
-      // Convert WatchlistItem to ContentItem format
+      // Convert WatchlistItem to ContentItem
       const contentItem: ContentItem = {
         id: parseInt(item.id),
-        tmdb_id: parseInt(item.imdb_id),
-        imdb_id: undefined,
+        tmdb_id: parseInt(item.id),
+        imdb_id: item.imdb_id,
         title: item.title,
         originalTitle: item.title,
         type: item.type,
@@ -110,14 +110,14 @@ export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
     id: item.id,
     imdb_id: item.imdb_id,
     title: item.title,
-    year: item.year,
+    year: item.year || undefined,
     rating: item.rating,
     genres: item.genres,
     poster: item.poster || undefined,
     backdropPath: item.poster || undefined,
     overview: '',
     type: item.type,
-    runtime: null,
+    runtime: undefined,
     tmdb_rating: item.rating
   });
 

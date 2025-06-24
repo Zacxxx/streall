@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, ChevronDown, Grid, Heart, Settings, X } from 'lucide-react';
+import { Search, User, ChevronDown, Grid, Heart, Settings, X, Tv } from 'lucide-react';
 import { NotificationBell, Notifications } from '@/components/notifications';
 import { tmdbService, type ContentItem } from '@/services/tmdb-service';
 
-type View = 'home' | 'search' | 'player' | 'movies' | 'series' | 'trending' | 'watchlist';
+type View = 'home' | 'search' | 'player' | 'movies' | 'series' | 'trending' | 'watchlist' | 'anime';
 
 interface NetflixNavbarProps {
   currentView: View;
@@ -90,8 +90,24 @@ export function NetflixNavbar({
     setIsSearching(true);
     
     try {
-      const response = await tmdbService.search(query, {}, 1, 6); // Limit to 6 results for dropdown
-      setSearchResults(response.results);
+      // Search both TMDB and anime content
+      const [tmdbResponse, animeResponse] = await Promise.all([
+        tmdbService.search(query, {}, 1, 4), // Limit to 4 TMDB results
+        (async () => {
+          try {
+            const { animeService } = await import('@/services/anime-service');
+            const animeResults = await animeService.searchAnime(query, 1, 2); // Limit to 2 anime results
+            return animeResults.results.map(anime => animeService.convertToContentItem(anime));
+          } catch (error) {
+            console.error('Anime search error:', error);
+            return [];
+          }
+        })()
+      ]);
+      
+      // Combine and limit total results to 6
+      const combinedResults = [...tmdbResponse.results, ...animeResponse].slice(0, 6);
+      setSearchResults(combinedResults);
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
@@ -105,7 +121,18 @@ export function NetflixNavbar({
   };
 
   const handleSearchResultClick = (result: ContentItem) => {
-    navigate(`/watch/${result.type}/${result.tmdb_id}`);
+    if (result.type === 'anime') {
+      // For anime, navigate to anime watch page
+      navigate(`/watch/anime/${result.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`, {
+        state: {
+          anime: result,
+          embedUrl: result.streamUrl
+        }
+      });
+    } else {
+      // For regular content, use existing logic
+      navigate(`/watch/${result.type}/${result.tmdb_id}`);
+    }
     setShowInlineSearch(false);
     setSearchQuery('');
     setSearchResults([]);
@@ -152,7 +179,8 @@ export function NetflixNavbar({
     { id: 'search', label: 'Search', path: '/search', icon: Search },
     { id: 'watchlist', label: 'My List', path: '/watchlist', icon: Heart, view: 'watchlist' as View },
     { id: 'movies', label: 'Movies', path: '/movies', view: 'movies' as View },
-    { id: 'series', label: 'TV Shows', path: '/tv', view: 'series' as View }
+    { id: 'series', label: 'TV Shows', path: '/tv', view: 'series' as View },
+    { id: 'anime', label: 'Anime', path: '/anime', icon: Tv, view: 'anime' as View }
   ];
 
   const isActive = (path: string) => {

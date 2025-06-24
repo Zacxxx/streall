@@ -14,8 +14,8 @@ interface NetflixCardProps {
     genres?: string[];
     poster?: string;
     backdropPath?: string;
-    overview?: string;
-    type: 'movie' | 'tv';
+    overview: string;
+    type: 'movie' | 'tv' | 'anime';
     runtime?: number | null;
     tmdb_rating?: number;
     seasons?: number;
@@ -141,7 +141,7 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
               {content.title}
             </h3>
             <span className="bg-red-600 px-2 py-1 rounded text-white text-xs font-medium whitespace-nowrap flex-shrink-0">
-              {content.type === 'tv' ? 'SERIES' : 'FILM'}
+              {content.type === 'tv' ? 'SERIES' : content.type === 'anime' ? 'ANIME' : 'FILM'}
             </span>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
@@ -224,7 +224,7 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
             {/* Badges - fixed width */}
             <div className="flex flex-col gap-1 flex-shrink-0">
               <span className="bg-red-600 px-2 py-1 rounded text-white text-xs font-medium whitespace-nowrap">
-                {content.type === 'tv' ? 'SERIES' : 'FILM'}
+                {content.type === 'tv' ? 'SERIES' : content.type === 'anime' ? 'ANIME' : 'FILM'}
               </span>
               {rating > 0 && (
                 <div className="flex items-center gap-1 bg-black/80 backdrop-blur-sm px-2 py-1 rounded">

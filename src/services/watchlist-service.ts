@@ -1,9 +1,9 @@
-export interface WatchlistItem {
+﻿export interface WatchlistItem {
   id: string;
   imdb_id: string;
   title: string;
   year?: number | null;
-  type: 'movie' | 'tv';
+  type: 'movie' | 'tv' | 'anime';
   poster?: string;
   genres: string[];
   rating?: number;
@@ -82,7 +82,7 @@ class WatchlistService {
   }
 
   // Get watchlist filtered by type
-  getWatchlistByType(type: 'movie' | 'tv'): WatchlistItem[] {
+  getWatchlistByType(type: 'movie' | 'tv' | 'anime'): WatchlistItem[] {
     return this.watchlist.filter(item => item.type === type);
   }
 
@@ -94,4 +94,4 @@ class WatchlistService {
   }
 }
 
-export const watchlistService = new WatchlistService(); 
+export const watchlistService = new WatchlistService();

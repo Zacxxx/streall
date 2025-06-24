@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, Grid, List, Shuffle, X, Film, ChevronLeft, ChevronRight } from 'lucide-react';
 import NetflixCard from '@/components/netflix-card';
+import { AnimeCard } from '@/components/anime-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { tmdbService, type ContentItem } from '@/services/tmdb-service';
+import { animeService, type AnimeItem } from '@/services/anime-service';
 
 interface AllContentBrowserProps {
-  initialType?: 'all' | 'movie' | 'tv';
+  initialType?: 'all' | 'movie' | 'tv' | 'anime';
   defaultFilter?: {
-    type?: 'movie' | 'tv';
+    type?: 'movie' | 'tv' | 'anime';
   };
   title?: string; // Custom title for the page
   description?: string; // Custom description
@@ -27,6 +29,7 @@ export function AllContentBrowser({
   
   // State
   const [content, setContent] = useState<ContentItem[]>([]);
+  const [animeContent, setAnimeContent] = useState<AnimeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -35,12 +38,13 @@ export function AllContentBrowser({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
+  const [animeSearchResults, setAnimeSearchResults] = useState<AnimeItem[]>([]);
   
   // Filters
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [type, setType] = useState<'all' | 'movie' | 'tv'>(
+  const [type, setType] = useState<'all' | 'movie' | 'tv' | 'anime'>(
     defaultFilter?.type || initialType
   );
   const [sort, setSort] = useState<'rating' | 'recent' | 'alphabetical' | 'random' | 'popular'>('recent');
@@ -93,19 +97,38 @@ export function AllContentBrowser({
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
+      setAnimeSearchResults([]);
       setIsSearching(false);
       return;
     }
 
     setIsSearching(true);
     try {
-      const results = await tmdbService.search(query, { 
-        type: type === 'all' ? 'all' : type 
-      });
-      setSearchResults(results.results);
+      if (type === 'anime') {
+        // Search only anime
+        const animeResults = await animeService.searchAnime(query, 1, 24);
+        setAnimeSearchResults(animeResults.results);
+        setSearchResults([]);
+      } else if (type === 'all') {
+        // Search both TMDB and anime
+        const [tmdbResults, animeResults] = await Promise.all([
+          tmdbService.search(query, { type: 'all' }),
+          animeService.searchAnime(query, 1, 12)
+        ]);
+        setSearchResults(tmdbResults.results);
+        setAnimeSearchResults(animeResults.results);
+      } else {
+        // Search only TMDB (movies/tv)
+        const results = await tmdbService.search(query, { 
+          type: type as 'movie' | 'tv' | 'all'
+        });
+        setSearchResults(results.results);
+        setAnimeSearchResults([]);
+      }
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
+      setAnimeSearchResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -114,6 +137,7 @@ export function AllContentBrowser({
   const clearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
+    setAnimeSearchResults([]);
     setIsSearching(false);
   };
 
@@ -138,112 +162,150 @@ export function AllContentBrowser({
       setError(null);
       
       let results: ContentItem[] = [];
+      let animeResults: AnimeItem[] = [];
       
-      // Use existing TMDB service methods based on type and sort
-      if (type === 'movie') {
+      if (type === 'anime') {
+        // Load anime content
         switch (sort) {
           case 'rating':
-            results = await tmdbService.getTopRatedMovies();
+          case 'popular':
+            animeResults = await animeService.getTrendingAnime(48);
             break;
           case 'recent':
-            results = await tmdbService.getNowPlayingMovies();
-            break;
-          case 'popular':
-            results = await tmdbService.getPopularMovies();
+            const newAnime = await animeService.getNewAnime(1, 48);
+            animeResults = newAnime.results;
             break;
           default:
-            results = await tmdbService.getPopularMovies();
+            animeResults = await animeService.getTrendingAnime(48);
         }
-      } else if (type === 'tv') {
-        switch (sort) {
-          case 'rating':
-            results = await tmdbService.getTopRatedTVShows();
-            break;
-          case 'recent':
-            results = await tmdbService.getTVAiringToday();
-            break;
-          case 'popular':
-            results = await tmdbService.getPopularTVShows();
-            break;
-          default:
-            results = await tmdbService.getPopularTVShows();
-        }
-      } else {
-        // Mixed content - get both movies and TV shows
-        const [movies, tvShows] = await Promise.all([
-          tmdbService.getPopularMovies(),
-          tmdbService.getPopularTVShows()
-        ]);
-        results = [...movies.slice(0, 20), ...tvShows.slice(0, 20)];
-      }
-      
-      // Ensure proper data format for all results (copy from search logic)
-      results = results.map(item => ({
-        ...item,
-        type: item.type || (item.releaseDate?.includes('-') && item.releaseDate.split('-').length === 3 ? 'movie' : 'tv'),
-        title: item.title || item.originalTitle || 'Unknown Title',
-        year: item.year || (item.releaseDate ? new Date(item.releaseDate).getFullYear() : null),
-        tmdb_id: item.tmdb_id || item.id || 0
-      }));
-      
-      // Filter by genre if specified
-      if (genre && genre !== 'all') {
-        // Find the genre object with the matching name
-        const genreObj = genres.find(g => g.name.toLowerCase() === genre.toLowerCase());
         
-        results = results.filter(item => {
-          // Check both genre names and genre IDs for maximum compatibility
-          const hasGenreByName = item.genres && item.genres.length > 0 && 
-            item.genres.some(g => g.toLowerCase().includes(genre.toLowerCase()));
+        // Use fallback if API fails
+        if (animeResults.length === 0) {
+          animeResults = animeService.getMockPopularAnime();
+        }
+        
+        // Sort anime results
+        switch (sort) {
+          case 'alphabetical':
+            animeResults.sort((a, b) => a.title.localeCompare(b.title));
+            break;
+          case 'rating':
+            animeResults.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            break;
+          case 'random':
+            animeResults = animeResults.sort(() => Math.random() - 0.5);
+            break;
+        }
+        
+        setAnimeContent(animeResults);
+        setContent([]);
+      } else {
+        // Use existing TMDB service methods based on type and sort
+        if (type === 'movie') {
+          switch (sort) {
+            case 'rating':
+              results = await tmdbService.getTopRatedMovies();
+              break;
+            case 'recent':
+              results = await tmdbService.getNowPlayingMovies();
+              break;
+            case 'popular':
+              results = await tmdbService.getPopularMovies();
+              break;
+            default:
+              results = await tmdbService.getPopularMovies();
+          }
+        } else if (type === 'tv') {
+          switch (sort) {
+            case 'rating':
+              results = await tmdbService.getTopRatedTVShows();
+              break;
+            case 'recent':
+              results = await tmdbService.getTVAiringToday();
+              break;
+            case 'popular':
+              results = await tmdbService.getPopularTVShows();
+              break;
+            default:
+              results = await tmdbService.getPopularTVShows();
+          }
+        } else {
+          // Mixed content - get both movies and TV shows
+          const [movies, tvShows] = await Promise.all([
+            tmdbService.getPopularMovies(),
+            tmdbService.getPopularTVShows()
+          ]);
+          results = [...movies.slice(0, 20), ...tvShows.slice(0, 20)];
+        }
+        
+        // Ensure proper data format for all results (copy from search logic)
+        results = results.map(item => ({
+          ...item,
+          type: item.type || (item.releaseDate?.includes('-') && item.releaseDate.split('-').length === 3 ? 'movie' : 'tv'),
+          title: item.title || item.originalTitle || 'Unknown Title',
+          year: item.year || (item.releaseDate ? new Date(item.releaseDate).getFullYear() : undefined),
+          tmdb_id: item.tmdb_id || item.id || 0
+        }));
+        
+        // Filter by genre if specified
+        if (genre && genre !== 'all') {
+          // Find the genre object with the matching name
+          const genreObj = genres.find(g => g.name.toLowerCase() === genre.toLowerCase());
           
-          const hasGenreById = genreObj && item.genreIds && item.genreIds.length > 0 && 
-            item.genreIds.includes(item.type === 'movie' ? genreObj.movieId : genreObj.tvId);
-          
-          return hasGenreByName || hasGenreById;
-        });
-      }
-      
-      // Filter by year range
-      if (yearMin || yearMax) {
-        results = results.filter(item => {
-          const year = item.year || 0;
-          return (!yearMin || year >= yearMin) && (!yearMax || year <= yearMax);
-        });
-      }
-      
-      // Sort results
-      switch (sort) {
-        case 'alphabetical':
-          results.sort((a, b) => a.title.localeCompare(b.title));
-          break;
-        case 'rating':
-          results.sort((a, b) => b.rating - a.rating);
-          break;
-        case 'random':
-          results = results.sort(() => Math.random() - 0.5);
-          break;
-        case 'recent':
-          results.sort((a, b) => {
-            const aDate = new Date(a.releaseDate || 0).getTime();
-            const bDate = new Date(b.releaseDate || 0).getTime();
-            return bDate - aDate;
+          results = results.filter(item => {
+            // Check both genre names and genre IDs for maximum compatibility
+            const hasGenreByName = item.genres && item.genres.length > 0 && 
+              item.genres.some(g => g.toLowerCase().includes(genre.toLowerCase()));
+            
+            const hasGenreById = genreObj && item.genreIds && item.genreIds.length > 0 && 
+              item.genreIds.includes(item.type === 'movie' ? genreObj.movieId : genreObj.tvId);
+            
+            return hasGenreByName || hasGenreById;
           });
-          break;
-        case 'popular':
-          // Keep original order (usually by popularity)
-          break;
-        default:
-          // Keep original order (usually by popularity)
-          break;
+        }
+        
+        // Filter by year range
+        if (yearMin || yearMax) {
+          results = results.filter(item => {
+            const year = item.year || 0;
+            return (!yearMin || year >= yearMin) && (!yearMax || year <= yearMax);
+          });
+        }
+        
+        // Sort results
+        switch (sort) {
+          case 'alphabetical':
+            results.sort((a, b) => a.title.localeCompare(b.title));
+            break;
+          case 'rating':
+            results.sort((a, b) => b.rating - a.rating);
+            break;
+          case 'random':
+            results = results.sort(() => Math.random() - 0.5);
+            break;
+          case 'recent':
+            results.sort((a, b) => {
+              const aDate = new Date(a.releaseDate || 0).getTime();
+              const bDate = new Date(b.releaseDate || 0).getTime();
+              return bDate - aDate;
+            });
+            break;
+          case 'popular':
+            // Keep original order (usually by popularity)
+            break;
+          default:
+            // Keep original order (usually by popularity)
+            break;
+        }
+        
+        setContent(results);
+        setAnimeContent([]);
       }
       
-      // Pagination
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      const paginatedResults = results.slice(startIndex, startIndex + itemsPerPage);
-      
-      setContent(paginatedResults);
-      setTotalPages(Math.ceil(results.length / itemsPerPage));
-      setTotalItems(results.length);
+      // Calculate pagination based on content type
+      const totalResults = type === 'anime' ? animeResults.length : results.length;
+      setTotalPages(Math.ceil(totalResults / itemsPerPage));
+      setTotalItems(totalResults);
       
     } catch (err) {
       console.error('Error loading content:', err);
@@ -362,7 +424,7 @@ export function AllContentBrowser({
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 type="text"
-                placeholder={`Search ${type === 'movie' ? 'movies' : type === 'tv' ? 'TV shows' : 'content'}...`}
+                placeholder={`Search ${type === 'movie' ? 'movies' : type === 'tv' ? 'TV shows' : type === 'anime' ? 'anime' : 'content'}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-12 py-4 bg-slate-900/50 border-slate-700 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent text-lg"
@@ -381,7 +443,7 @@ export function AllContentBrowser({
             {searchQuery && (
               <div className="mt-2 text-center">
                 <span className="text-sm text-gray-400">
-                  {isSearching ? 'Searching...' : `Found ${searchResults.length} results for "${searchQuery}"`}
+                  {isSearching ? 'Searching...' : `Found ${searchResults.length + animeSearchResults.length} results for "${searchQuery}"`}
                 </span>
               </div>
             )}
@@ -420,6 +482,7 @@ export function AllContentBrowser({
                 <SelectItem value="all" className="hover:bg-slate-700 focus:bg-slate-700 text-white">All</SelectItem>
                 <SelectItem value="movie" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Movies</SelectItem>
                 <SelectItem value="tv" className="hover:bg-slate-700 focus:bg-slate-700 text-white">TV Shows</SelectItem>
+                <SelectItem value="anime" className="hover:bg-slate-700 focus:bg-slate-700 text-white">Anime</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -547,7 +610,7 @@ export function AllContentBrowser({
         
                   <div className="text-sm text-gray-400">
             {searchQuery ? 
-              `Showing ${searchResults.length} search results for "${searchQuery}"` :
+              `Showing ${searchResults.length + animeSearchResults.length} search results for "${searchQuery}"` :
               `Showing ${((currentPage - 1) * itemsPerPage) + 1}-${Math.min(currentPage * itemsPerPage, totalItems)} of ${totalItems.toLocaleString()}`
             }
           </div>
@@ -610,38 +673,127 @@ export function AllContentBrowser({
                 : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
             }`}
           >
-            {(searchQuery ? searchResults : content).map((item) => (
-              <motion.div
-                key={item.tmdb_id || item.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <NetflixCard
-                  content={{
-                    id: item.id.toString(),
-                    imdb_id: item.tmdb_id.toString(),
-                    title: item.title,
-                    year: item.year,
-                    rating: item.rating,
-                    genres: item.genres,
-                    poster: item.poster || undefined,
-                    backdropPath: item.backdropPath || undefined,
-                    overview: item.overview,
-                    type: item.type,
-                    runtime: item.runtime,
-                    tmdb_rating: item.rating,
-                    seasons: item.seasons || undefined,
-                    episodes: item.episodes || undefined
-                  }}
-                  onPlay={() => {
-                    const contentId = item.tmdb_id || item.id;
-                    navigate(`/details/${item.type}/${contentId}`);
-                  }}
-                  compact={viewMode === 'list'}
-                />
-              </motion.div>
-            ))}
+            {/* Render search results or regular content */}
+            {searchQuery ? (
+              <>
+                {/* TMDB Search Results */}
+                {searchResults.map((item) => (
+                  <motion.div
+                    key={`tmdb-${item.tmdb_id || item.id}`}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <NetflixCard
+                      content={{
+                        id: item.id.toString(),
+                        imdb_id: item.tmdb_id.toString(),
+                        title: item.title,
+                        year: item.year,
+                        rating: item.rating,
+                        genres: item.genres,
+                        poster: item.poster || undefined,
+                        backdropPath: item.backdropPath || undefined,
+                        overview: item.overview,
+                        type: item.type,
+                        runtime: item.runtime,
+                        tmdb_rating: item.rating,
+                        seasons: item.seasons || undefined,
+                        episodes: item.episodes || undefined
+                      }}
+                      onPlay={() => {
+                        const contentId = item.tmdb_id || item.id;
+                        navigate(`/details/${item.type}/${contentId}`);
+                      }}
+                      compact={viewMode === 'list'}
+                    />
+                  </motion.div>
+                ))}
+                
+                {/* Anime Search Results */}
+                {animeSearchResults.map((anime) => (
+                  <motion.div
+                    key={`anime-${anime.id}`}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <AnimeCard
+                      anime={anime}
+                      onPlay={() => {
+                        navigate(`/watch/anime/${anime.slug}`, { 
+                          state: { 
+                            anime,
+                            embedUrl: anime.streamUrl 
+                          } 
+                        });
+                      }}
+                    />
+                  </motion.div>
+                ))}
+              </>
+            ) : (
+              <>
+                {/* Regular content or anime content based on type */}
+                {type === 'anime' ? (
+                  /* Anime Content with Pagination */
+                  animeContent.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((anime) => (
+                    <motion.div
+                      key={`anime-${anime.id}`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <AnimeCard
+                        anime={anime}
+                        onPlay={() => {
+                          navigate(`/watch/anime/${anime.slug}`, { 
+                            state: { 
+                              anime,
+                              embedUrl: anime.streamUrl 
+                            } 
+                          });
+                        }}
+                      />
+                    </motion.div>
+                  ))
+                ) : (
+                  /* TMDB Content */
+                  content.map((item) => (
+                    <motion.div
+                      key={`tmdb-${item.tmdb_id || item.id}`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <NetflixCard
+                        content={{
+                          id: item.id.toString(),
+                          imdb_id: item.tmdb_id.toString(),
+                          title: item.title,
+                          year: item.year,
+                          rating: item.rating,
+                          genres: item.genres,
+                          poster: item.poster || undefined,
+                          backdropPath: item.backdropPath || undefined,
+                          overview: item.overview,
+                          type: item.type,
+                          runtime: item.runtime,
+                          tmdb_rating: item.rating,
+                          seasons: item.seasons || undefined,
+                          episodes: item.episodes || undefined
+                        }}
+                        onPlay={() => {
+                          const contentId = item.tmdb_id || item.id;
+                          navigate(`/details/${item.type}/${contentId}`);
+                        }}
+                        compact={viewMode === 'list'}
+                      />
+                    </motion.div>
+                  ))
+                )}
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

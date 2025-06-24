@@ -46,7 +46,7 @@ export function ContentDetails() {
           }
         } else {
           // Create minimal content for direct streaming with TMDB ID
-          const minimalContent = {
+          const minimalContent: ContentItem = {
             id: tmdbId,
             tmdb_id: tmdbId,
             imdb_id: undefined,

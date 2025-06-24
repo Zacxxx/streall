@@ -12,13 +12,13 @@ export interface ContentItem {
   tmdb_id: number;
   imdb_id?: string;
   title: string;
-  originalTitle: string;
-  type: 'movie' | 'tv';
-  year: number | null;
+  originalTitle?: string;
+  type: 'movie' | 'tv' | 'anime';
+  year?: number | null;
   releaseDate: string;
   overview: string;
-  poster: string | null;
-  backdropPath: string | null;
+  poster?: string | null;
+  backdropPath?: string | null;
   rating: number;
   voteCount: number;
   popularity: number;
@@ -29,11 +29,11 @@ export interface ContentItem {
   episodes?: number | null;
   status?: string | null;
   isAdult: boolean;
-  streamUrl: string; // 2embed streaming URL
+  streamUrl?: string; // For anime content
 }
 
 export interface SearchFilters {
-  type?: 'all' | 'movie' | 'tv';
+  type?: 'all' | 'movie' | 'tv' | 'anime';
   genre?: number;
   year?: number;
   minRating?: number;
@@ -383,18 +383,29 @@ class TMDBService {
       let totalPages = 1;
       let totalResults = 0;
 
-      if (filters.type === 'all' || !filters.type) {
-        const data = await this.tmdbRequest('/search/multi', { query, page });
-        results = data.results
-          .filter((item: any) => item.media_type !== 'person')
-          .slice(0, limit)
-          .map((item: any) => this.convertTMDBItem(item));
-        totalPages = data.total_pages;
-        totalResults = data.total_results;
+      if (filters.type === 'all') {
+        // Search both movies and TV shows
+        const [movieData, tvData] = await Promise.all([
+          this.tmdbRequest('/search/movie', { query, page }),
+          this.tmdbRequest('/search/tv', { query, page })
+        ]);
+        
+        const movies = movieData.results.slice(0, Math.ceil(limit / 2)).map((item: any) => this.convertTMDBItem(item, 'movie'));
+        const tvShows = tvData.results.slice(0, Math.ceil(limit / 2)).map((item: any) => this.convertTMDBItem(item, 'tv'));
+        
+        results = [...movies, ...tvShows].slice(0, limit);
+        totalPages = Math.max(movieData.total_pages, tvData.total_pages);
+        totalResults = movieData.total_results + tvData.total_results;
+      } else if (filters.type === 'anime') {
+        // Anime is not supported by TMDB, return empty results
+        results = [];
+        totalPages = 1;
+        totalResults = 0;
       } else {
+        // Search specific type (movie or tv)
         const endpoint = filters.type === 'movie' ? '/search/movie' : '/search/tv';
         const data = await this.tmdbRequest(endpoint, { query, page });
-        results = data.results.slice(0, limit).map((item: any) => this.convertTMDBItem(item, filters.type === 'all' ? undefined : filters.type));
+        results = data.results.slice(0, limit).map((item: any) => this.convertTMDBItem(item, filters.type as 'movie' | 'tv'));
         totalPages = data.total_pages;
         totalResults = data.total_results;
       }

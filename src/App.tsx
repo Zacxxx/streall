@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { NetflixHero } from '@/components/netflix-hero'
 import { ContentRows } from '@/components/content-rows'
 import { NetflixNavbar } from '@/components/netflix-navbar'
@@ -31,6 +31,8 @@ import { RedirectFollower } from '@/utils/redirect-follower'
 import { StreamCapture } from '@/utils/stream-capture'
 import { StreamInjector } from '@/utils/stream-injector'
 import { ChangelogPage } from '@/components/changelog-page'
+import { AnimePage } from '@/components/anime-page'
+import { AnimeSection } from '@/components/anime-section'
 
 // Layout wrapper for consistent header/footer
 function Layout({ children, showNavbar = true, showFooter = true }: { 
@@ -231,8 +233,13 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
 
 // Player Page Component
 function PlayerPage() {
-  const { mediaType, contentId } = useParams<{ mediaType: string; contentId: string }>();
+  const { mediaType, contentId, animeSlug } = useParams<{ 
+    mediaType: string; 
+    contentId: string; 
+    animeSlug: string; 
+  }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [content, setContent] = useState<ContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [embedUrl, setEmbedUrl] = useState('');
@@ -257,33 +264,75 @@ function PlayerPage() {
 
   useEffect(() => {
     const loadContent = async () => {
-      if (!contentId || !mediaType) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
         setIsLoading(true);
-        const data = await tmdbService.getDetails(parseInt(contentId), mediaType as 'movie' | 'tv');
-        if (data) {
-          setContent(data);
+        
+        // Handle anime content
+        if (mediaType === 'anime' && animeSlug) {
+          const animeData = location.state?.anime;
+          const animeEmbedUrl = location.state?.embedUrl;
           
-          // Generate 2embed URL using our tmdbService
-          const baseUrl = 'https://www.2embed.cc';
-          let url = '';
-          
-          if (mediaType === 'movie') {
-            url = `${baseUrl}/embed/${contentId}`;
-          } else if (mediaType === 'tv') {
-            // Get season and episode from URL params
-            const urlParams = new URLSearchParams(window.location.search);
-            const season = urlParams.get('s') || '1';
-            const episode = urlParams.get('e') || '1';
-            // Fix: Use correct 2embed URL format with & separator
-            url = `${baseUrl}/embedtv/${contentId}&s=${season}&e=${episode}`;
+          if (animeData && animeEmbedUrl) {
+            // Convert anime data to ContentItem format
+            const animeContent: ContentItem = {
+              id: animeData.id,
+              tmdb_id: animeData.id,
+              title: animeData.title,
+              originalTitle: animeData.title_jp || animeData.title,
+              type: 'anime' as const,
+              year: animeData.year,
+              releaseDate: animeData.year ? `${animeData.year}-01-01` : '',
+              overview: animeData.description || '',
+              poster: animeData.poster,
+              backdropPath: animeData.cover || animeData.poster,
+              rating: animeData.rating || 0,
+              voteCount: 0,
+              popularity: 0,
+              genres: animeData.genres || [],
+              genreIds: [],
+              episodes: animeData.episodes,
+              isAdult: false,
+            };
+            
+            setContent(animeContent);
+            setEmbedUrl(animeEmbedUrl);
+          } else {
+            // Fallback: try to get anime details from service
+            const { animeService } = await import('@/services/anime-service');
+            const animeDetails = await animeService.getAnimeDetails(animeSlug);
+            
+            if (animeDetails) {
+              const animeContent: ContentItem = animeService.convertToContentItem(animeDetails);
+              setContent(animeContent);
+              setEmbedUrl(animeDetails.streamUrl);
+            } else {
+              console.error('Anime not found:', animeSlug);
+            }
           }
-          
-          setEmbedUrl(url);
+        } 
+        // Handle regular movie/TV content
+        else if (contentId && mediaType && mediaType !== 'anime') {
+          const data = await tmdbService.getDetails(parseInt(contentId), mediaType as 'movie' | 'tv');
+          if (data) {
+            setContent(data);
+            
+            // Generate 2embed URL using our tmdbService
+            const baseUrl = 'https://www.2embed.cc';
+            let url = '';
+            
+            if (mediaType === 'movie') {
+              url = `${baseUrl}/embed/${contentId}`;
+            } else if (mediaType === 'tv') {
+              // Get season and episode from URL params
+              const urlParams = new URLSearchParams(window.location.search);
+              const season = urlParams.get('s') || '1';
+              const episode = urlParams.get('e') || '1';
+              // Fix: Use correct 2embed URL format with & separator
+              url = `${baseUrl}/embedtv/${contentId}&s=${season}&e=${episode}`;
+            }
+            
+            setEmbedUrl(url);
+          }
         }
       } catch (error) {
         console.error('Error loading content:', error);
@@ -293,7 +342,7 @@ function PlayerPage() {
     };
 
     loadContent();
-  }, [contentId, mediaType]);
+  }, [contentId, mediaType, animeSlug, location.state]);
 
   const handleBack = () => {
     navigate(-1);
@@ -676,6 +725,7 @@ function MainApp() {
             <>
               <NetflixHero onPlayContent={handlePlayContent} />
               <ContentRows />
+              <AnimeSection />
             </>
           </Layout>
         } />
@@ -723,6 +773,13 @@ function MainApp() {
           </Layout>
         } />
 
+        {/* Anime Page */}
+        <Route path="/anime" element={
+          <Layout>
+            <AnimePage />
+          </Layout>
+        } />
+
         {/* Watchlist */}
         <Route path="/watchlist" element={
           <Layout>
@@ -732,6 +789,9 @@ function MainApp() {
 
         {/* Player Page */}
         <Route path="/watch/:mediaType/:contentId" element={<PlayerPage />} />
+
+        {/* Anime Player Page */}
+        <Route path="/watch/anime/:animeSlug" element={<PlayerPage />} />
 
         {/* Content Details Page */}
         <Route path="/details/:mediaType/:contentId" element={
