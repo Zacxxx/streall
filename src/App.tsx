@@ -30,6 +30,7 @@ import { RealStreamExtractor } from '@/utils/real-stream-extractor'
 import { RedirectFollower } from '@/utils/redirect-follower'
 import { StreamCapture } from '@/utils/stream-capture'
 import { StreamInjector } from '@/utils/stream-injector'
+import { ChangelogPage } from '@/components/changelog-page'
 
 // Layout wrapper for consistent header/footer
 function Layout({ children, showNavbar = true, showFooter = true }: { 
@@ -743,6 +744,20 @@ function MainApp() {
         <Route path="/details/:mediaType/:contentId" element={
           <Layout showNavbar={true} showFooter={true}>
             <ContentDetails />
+          </Layout>
+        } />
+
+        {/* Changelog Page */}
+        <Route path="/changelog" element={
+          <Layout showNavbar={true} showFooter={true}>
+            <ChangelogPage />
+          </Layout>
+        } />
+
+        {/* Specific Changelog Version */}
+        <Route path="/changelog/:version" element={
+          <Layout showNavbar={true} showFooter={true}>
+            <ChangelogPage />
           </Layout>
         } />
 

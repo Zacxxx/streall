@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Bell, User, ChevronDown, Grid, Heart, Settings } from 'lucide-react';
+import { Search, User, ChevronDown, Grid, Heart, Settings } from 'lucide-react';
+import { NotificationBell, Notifications } from '@/components/notifications';
 
 type View = 'home' | 'search' | 'player' | 'movies' | 'series' | 'trending' | 'watchlist';
 
@@ -35,6 +36,7 @@ export function NetflixNavbar({
 }: NetflixNavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const location = useLocation();
   
   // Advanced scroll tracking for glassmorphic effects
@@ -98,7 +100,7 @@ export function NetflixNavbar({
         backdropFilter: isScrolled ? `blur(${12 + scrollProgress * 8}px) saturate(1.5)` : 'none',
         WebkitBackdropFilter: isScrolled ? `blur(${12 + scrollProgress * 8}px) saturate(1.5)` : 'none',
         borderBottom: isScrolled 
-          ? `1px solid rgba(255, 255, 255, ${0.1 + scrollProgress * 0.1})` 
+          ? `1px solid rgba(255, 255, 255, ${0.05 + scrollProgress * 0.05})` 
           : 'none',
         boxShadow: isScrolled 
           ? `0 8px 32px rgba(0, 0, 0, ${0.3 + scrollProgress * 0.2})` 
@@ -126,15 +128,11 @@ export function NetflixNavbar({
           onClick={onHome}
         >
           <motion.h1 
-            className="text-xl sm:text-2xl md:text-3xl font-black whitespace-nowrap"
+            className="text-xl sm:text-2xl md:text-3xl font-black whitespace-nowrap text-red-500"
             style={{
-              background: isScrolled 
-                ? 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)' 
-                : '#ef4444',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: isScrolled ? 'transparent' : '#ef4444',
               filter: isScrolled ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.3))' : 'none',
-              minWidth: 'fit-content'
+              minWidth: 'fit-content',
+              textShadow: isScrolled ? '0 0 10px rgba(239, 68, 68, 0.4)' : 'none'
             }}
           >
             STREALL
@@ -205,27 +203,10 @@ export function NetflixNavbar({
             <Search className="w-5 h-5 group-hover:text-red-400 transition-colors" />
           </motion.button>
 
-          {/* Notifications - Hidden on small screens */}
-          <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="hidden sm:block p-2 text-slate-300 hover:text-white transition-all duration-300 rounded-full hover:bg-white/10 group relative"
-            style={{
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)'
-            }}
-          >
-            <Bell className="w-5 h-5 group-hover:text-red-400 transition-colors" />
-            {/* Notification indicator */}
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-black"
-              style={{
-                boxShadow: '0 0 6px rgba(239, 68, 68, 0.8)'
-              }}
-            />
-          </motion.button>
+          {/* Notifications */}
+          <div className="hidden sm:block">
+            <NotificationBell onClick={() => setShowNotifications(!showNotifications)} />
+          </div>
 
           {/* Profile Menu */}
           <div className="relative">
@@ -473,6 +454,12 @@ export function NetflixNavbar({
           </div>
         </motion.div>
       )}
+      
+      {/* Notifications Panel */}
+      <Notifications 
+        isOpen={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
+      />
     </motion.nav>
   );
 } 
