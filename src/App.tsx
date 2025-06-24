@@ -237,7 +237,7 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
 
 // Player Page Component
 function PlayerPage() {
-  const { id, type } = useParams<{ id: string; type: string }>();
+  const { mediaType, contentId } = useParams<{ mediaType: string; contentId: string }>();
   const navigate = useNavigate();
   const [content, setContent] = useState<ContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -263,30 +263,30 @@ function PlayerPage() {
 
   useEffect(() => {
     const loadContent = async () => {
-      if (!id || !type) {
+      if (!contentId || !mediaType) {
         setIsLoading(false);
         return;
       }
 
       try {
         setIsLoading(true);
-        const data = await tmdbService.getDetails(parseInt(id), type as 'movie' | 'tv');
+        const data = await tmdbService.getDetails(parseInt(contentId), mediaType as 'movie' | 'tv');
         if (data) {
           setContent(data);
           
-          // Generate embed URL using 2embed.cc
+          // Generate 2embed URL using our tmdbService
           const baseUrl = 'https://www.2embed.cc';
           let url = '';
           
-          if (type === 'movie') {
-            url = `${baseUrl}/embed/${id}`;
-          } else if (type === 'tv') {
+          if (mediaType === 'movie') {
+            url = `${baseUrl}/embed/${contentId}`;
+          } else if (mediaType === 'tv') {
             // Get season and episode from URL params
             const urlParams = new URLSearchParams(window.location.search);
             const season = urlParams.get('s') || '1';
             const episode = urlParams.get('e') || '1';
             // Fix: Use correct 2embed URL format with & separator
-            url = `${baseUrl}/embedtv/${id}&s=${season}&e=${episode}`;
+            url = `${baseUrl}/embedtv/${contentId}&s=${season}&e=${episode}`;
           }
           
           setEmbedUrl(url);
@@ -299,7 +299,7 @@ function PlayerPage() {
     };
 
     loadContent();
-  }, [id, type]);
+  }, [contentId, mediaType]);
 
   const handleBack = () => {
     navigate(-1);
