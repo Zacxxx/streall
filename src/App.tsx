@@ -61,12 +61,6 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
     return () => clearInterval(interval)
   }, [])
 
-
-
-  const handleSearch = () => {
-    navigate('/search')
-  }
-
   const handleHome = () => {
     navigate('/')
   }
@@ -120,7 +114,6 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
         <NetflixNavbar
           currentView="home"
           onViewChange={() => {}}
-          onSearch={handleSearch}
           onHome={handleHome}
           onSettings={handleSettings}
           onProfile={handleProfile}

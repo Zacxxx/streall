@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Search, User, ChevronDown, Grid, Heart, Settings } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, User, ChevronDown, Grid, Heart, Settings, X } from 'lucide-react';
 import { NotificationBell, Notifications } from '@/components/notifications';
+import { tmdbService, type ContentItem } from '@/services/tmdb-service';
 
 type View = 'home' | 'search' | 'player' | 'movies' | 'series' | 'trending' | 'watchlist';
 
 interface NetflixNavbarProps {
   currentView: View;
   onViewChange: (view: View) => void;
-  onSearch: () => void;
   onHome: () => void;
   onSettings?: () => void;
   onProfile?: () => void;
@@ -25,7 +25,6 @@ interface NetflixNavbarProps {
 }
 
 export function NetflixNavbar({ 
-  onSearch, 
   onHome, 
   onSettings,
   onProfile,
@@ -37,7 +36,13 @@ export function NetflixNavbar({
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showInlineSearch, setShowInlineSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Advanced scroll tracking for glassmorphic effects
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -53,6 +58,93 @@ export function NetflixNavbar({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Focus search input when inline search is shown
+  useEffect(() => {
+    if (showInlineSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showInlineSearch]);
+
+  // Debounced search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const searchTimeout = setTimeout(() => {
+      handleInlineSearch(searchQuery);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(searchTimeout);
+  }, [searchQuery]);
+
+  // Handle search functionality
+  const handleInlineSearch = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    
+    try {
+      const response = await tmdbService.search(query, {}, 1, 6); // Limit to 6 results for dropdown
+      setSearchResults(response.results);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchQuery(value);
+  };
+
+  const handleSearchResultClick = (result: ContentItem) => {
+    navigate(`/watch/${result.type}/${result.tmdb_id}`);
+    setShowInlineSearch(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  const handleInlineSearchToggle = () => {
+    if (showInlineSearch) {
+      setShowInlineSearch(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    } else {
+      setShowInlineSearch(true);
+    }
+  };
+
+  // Handle Enter key for search
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setShowInlineSearch(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    }
+  };
+
+  // Close search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showInlineSearch && !target.closest('.inline-search-container')) {
+        setShowInlineSearch(false);
+        setSearchQuery('');
+        setSearchResults([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showInlineSearch]);
 
   const navItems = [
     { id: 'home', label: 'Home', path: '/', view: 'home' as View },
@@ -193,14 +285,18 @@ export function NetflixNavbar({
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={onSearch}
+            onClick={handleInlineSearchToggle}
             className="p-2 text-slate-300 hover:text-white transition-all duration-300 rounded-full hover:bg-white/10 group"
             style={{
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)'
             }}
           >
-            <Search className="w-5 h-5 group-hover:text-red-400 transition-colors" />
+            {showInlineSearch ? (
+              <X className="w-5 h-5 group-hover:text-red-400 transition-colors" />
+            ) : (
+              <Search className="w-5 h-5 group-hover:text-red-400 transition-colors" />
+            )}
           </motion.button>
 
           {/* Notifications */}
@@ -455,6 +551,124 @@ export function NetflixNavbar({
         </motion.div>
       )}
       
+      {/* Inline Search Bar */}
+      <AnimatePresence>
+        {showInlineSearch && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden border-t border-slate-700/50"
+            style={{
+              background: 'rgba(0, 0, 0, 0.95)',
+              backdropFilter: 'blur(20px) saturate(1.5)',
+              WebkitBackdropFilter: 'blur(20px) saturate(1.5)'
+            }}
+          >
+            <div className="container mx-auto px-4 md:px-8 py-4 inline-search-container">
+              <div className="max-w-2xl mx-auto">
+                {/* Search Input */}
+                <div className="relative">
+                  <motion.input
+                    ref={searchInputRef}
+                    initial={{ scale: 0.95 }}
+                    animate={{ scale: 1 }}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchInputChange(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    placeholder="Search movies, TV shows, and more..."
+                    className="w-full px-6 py-4 bg-slate-800/80 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-lg"
+                    style={{
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)'
+                    }}
+                  />
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    {isSearching ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-slate-400 border-t-red-500 rounded-full"
+                      />
+                    ) : (
+                      <Search className="w-5 h-5 text-slate-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Search Results */}
+                <AnimatePresence>
+                  {searchQuery && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mt-4 bg-slate-800/90 border border-slate-600 rounded-lg overflow-hidden"
+                      style={{
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)'
+                      }}
+                    >
+                      {searchResults.length > 0 ? (
+                        <div className="max-h-64 overflow-y-auto">
+                          {searchResults.map((result, index) => (
+                            <motion.div
+                              key={result.tmdb_id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              onClick={() => handleSearchResultClick(result)}
+                              className="px-4 py-3 hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-slate-700 last:border-b-0"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="text-white font-medium">{result.title}</h4>
+                                                                      <p className="text-slate-400 text-sm">
+                                      {result.type === 'movie' ? 'Movie' : 'TV Series'} • {result.year || 'N/A'}
+                                    </p>
+                                </div>
+                                <div className="text-slate-500">
+                                  <ChevronDown className="w-4 h-4 rotate-270" />
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : !isSearching && (
+                        <div className="px-4 py-8 text-center text-slate-400">
+                          <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p>No results found for "{searchQuery}"</p>
+                          <p className="text-sm mt-1">Try a different search term</p>
+                        </div>
+                      )}
+                      
+                      {/* Quick Actions */}
+                      {searchQuery && (
+                        <div className="px-4 py-3 bg-slate-900/50 border-t border-slate-700">
+                          <button
+                            onClick={() => {
+                              navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                              setShowInlineSearch(false);
+                              setSearchQuery('');
+                              setSearchResults([]);
+                            }}
+                            className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
+                          >
+                            View all results for "{searchQuery}" →
+                          </button>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Notifications Panel */}
       <Notifications 
         isOpen={showNotifications} 
