@@ -386,6 +386,30 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams, subtitles
     setIsLoading(false);
   };
 
+  // Listen for tryDirectStream event from the settings dropdown
+  useEffect(() => {
+    const handleTryDirectStream = async () => {
+      console.log('🎯 Trying direct stream extraction...');
+      const streamData = await extractStreamUrl(embedUrl);
+      if (streamData && streamData.currentSource) {
+        setStreamData(streamData);
+        setUseDirectStream(true);
+        console.log('✅ Switched to direct stream mode');
+      } else {
+        console.log('❌ Direct stream extraction failed, staying with iframe');
+        setError('Could not extract direct stream. The iframe will continue to work.');
+        // Clear error after 5 seconds
+        setTimeout(() => setError(null), 5000);
+      }
+    };
+
+    window.addEventListener('tryDirectStream', handleTryDirectStream);
+    
+    return () => {
+      window.removeEventListener('tryDirectStream', handleTryDirectStream);
+    };
+  }, [embedUrl]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96 bg-black rounded-lg">
@@ -537,30 +561,7 @@ export function CustomVideoPlayer({ embedUrl, title, onExtractStreams, subtitles
         title={title}
       />
       
-      {/* Enhanced Try Direct Stream Button */}
-      <div className="absolute top-4 right-4 z-10">
-        <Button
-          onClick={async () => {
-            console.log('🎯 Trying direct stream extraction...');
-            const streamData = await extractStreamUrl(embedUrl);
-            if (streamData && streamData.currentSource) {
-              setStreamData(streamData);
-              setUseDirectStream(true);
-              console.log('✅ Switched to direct stream mode');
-            } else {
-              console.log('❌ Direct stream extraction failed, staying with iframe');
-              setError('Could not extract direct stream. The iframe will continue to work.');
-              // Clear error after 5 seconds
-              setTimeout(() => setError(null), 5000);
-            }
-          }}
-          variant="outline"
-          size="sm"
-          className="bg-green-900/80 hover:bg-green-800/90 text-white border-green-400 hover:border-green-300 backdrop-blur-sm"
-        >
-          🎯 Try Direct Stream
-        </Button>
-      </div>
+
 
       {/* Error Toast */}
       {error && (

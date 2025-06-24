@@ -18,7 +18,7 @@ import { settingsService } from '@/services/settings-service'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, User } from 'lucide-react'
+import { ArrowLeft, User, Settings, ChevronDown } from 'lucide-react'
 import { ContentDetails } from '@/components/content-details'
 import { CustomVideoPlayer } from '@/components/custom-video-player'
 import { SubtitleControls } from '@/components/subtitle-overlay'
@@ -59,6 +59,8 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
     const interval = setInterval(checkAuthState, 1000)
     return () => clearInterval(interval)
   }, [])
+
+
 
   const handleSearch = () => {
     navigate('/search')
@@ -235,28 +237,40 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
 
 // Player Page Component
 function PlayerPage() {
-  const { mediaType, contentId } = useParams<{ mediaType: string, contentId: string }>();
+  const { id, type } = useParams<{ id: string; type: string }>();
   const navigate = useNavigate();
   const [content, setContent] = useState<ContentItem | null>(null);
-  const [embedUrl, setEmbedUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [embedUrl, setEmbedUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
-  
-  // Subtitle state
   const [hasSubtitles, setHasSubtitles] = useState(false);
   const [subtitlesVisible, setSubtitlesVisible] = useState(false);
   const [subtitleTimerRunning, setSubtitleTimerRunning] = useState(false);
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showSettingsDropdown && !target.closest('.settings-dropdown')) {
+        setShowSettingsDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSettingsDropdown]);
 
   useEffect(() => {
     const loadContent = async () => {
-      if (!contentId || !mediaType) {
+      if (!id || !type) {
         setIsLoading(false);
         return;
       }
 
       try {
         setIsLoading(true);
-        const data = await tmdbService.getDetails(parseInt(contentId), mediaType as 'movie' | 'tv');
+        const data = await tmdbService.getDetails(parseInt(id), type as 'movie' | 'tv');
         if (data) {
           setContent(data);
           
@@ -264,15 +278,15 @@ function PlayerPage() {
           const baseUrl = 'https://www.2embed.cc';
           let url = '';
           
-          if (mediaType === 'movie') {
-            url = `${baseUrl}/embed/${contentId}`;
-          } else if (mediaType === 'tv') {
+          if (type === 'movie') {
+            url = `${baseUrl}/embed/${id}`;
+          } else if (type === 'tv') {
             // Get season and episode from URL params
             const urlParams = new URLSearchParams(window.location.search);
             const season = urlParams.get('s') || '1';
             const episode = urlParams.get('e') || '1';
             // Fix: Use correct 2embed URL format with & separator
-            url = `${baseUrl}/embedtv/${contentId}&s=${season}&e=${episode}`;
+            url = `${baseUrl}/embedtv/${id}&s=${season}&e=${episode}`;
           }
           
           setEmbedUrl(url);
@@ -285,7 +299,7 @@ function PlayerPage() {
     };
 
     loadContent();
-  }, [contentId, mediaType]);
+  }, [id, type]);
 
   const handleBack = () => {
     navigate(-1);
@@ -536,24 +550,61 @@ function PlayerPage() {
                 Back
               </Button>
               
-              <Button
-                onClick={handleExtractStreams}
-                disabled={isExtracting}
-                variant="outline"
-                size="sm"
-                className="text-white border-green-400 bg-green-900/30 hover:bg-green-700/40 hover:border-green-300 disabled:opacity-50 font-medium"
-              >
-                {isExtracting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Extracting...
-                  </>
-                ) : (
-                  <>
-                    🎯 Enhanced 2embed.cc Extraction
-                  </>
+              {/* Settings Dropdown */}
+              <div className="relative settings-dropdown">
+                <Button
+                  onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+                  variant="outline"
+                  size="sm"
+                  className="text-white border-slate-400 bg-slate-900/30 hover:bg-slate-700/40 hover:border-slate-300 font-medium"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Stream Settings
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+                
+                {showSettingsDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-sm border border-slate-700 rounded-lg shadow-xl z-50">
+                    <div className="p-2">
+                      <Button
+                        onClick={() => {
+                          handleExtractStreams();
+                          setShowSettingsDropdown(false);
+                        }}
+                        disabled={isExtracting}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-white hover:bg-green-700/40 hover:text-green-300 disabled:opacity-50"
+                      >
+                        {isExtracting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Extracting...
+                          </>
+                        ) : (
+                          <>
+                            🎯 Enhanced 2embed.cc Extraction
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          // This will trigger the Try Direct Stream functionality in CustomVideoPlayer
+                          const event = new CustomEvent('tryDirectStream');
+                          window.dispatchEvent(event);
+                          setShowSettingsDropdown(false);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-white hover:bg-blue-700/40 hover:text-blue-300 mt-1"
+                      >
+                        🎯 Try Direct Stream
+                      </Button>
+                    </div>
+                  </div>
                 )}
-              </Button>
+              </div>
               
               {/* Subtitle Controls */}
               <SubtitleControls
