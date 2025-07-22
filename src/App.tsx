@@ -33,6 +33,7 @@ import { StreamInjector } from '@/utils/stream-injector'
 import { ChangelogPage } from '@/components/changelog-page'
 import { AnimePage } from '@/components/anime-page'
 import { AnimeSection } from '@/components/anime-section'
+import { MovieSuggestions } from '@/components/movie-suggestions'
 
 // Layout wrapper for consistent header/footer
 function Layout({ children, showNavbar = true, showFooter = true }: { 
@@ -777,6 +778,13 @@ function MainApp() {
         <Route path="/anime" element={
           <Layout>
             <AnimePage />
+          </Layout>
+        } />
+
+        {/* Movie Suggestions */}
+        <Route path="/suggestions" element={
+          <Layout>
+            <MovieSuggestions />
           </Layout>
         } />
 

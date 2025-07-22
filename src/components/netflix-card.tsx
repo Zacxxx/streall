@@ -20,6 +20,7 @@ interface NetflixCardProps {
     tmdb_rating?: number;
     seasons?: number;
     episodes?: number;
+    tmdb_id?: number; // Add TMDB ID for proper routing
   };
   onPlay: (contentId: string) => void;
   onAddToList?: (contentId: string) => void;
@@ -51,20 +52,29 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
   };
 
   const handlePlay = () => {
-    onPlay(content.imdb_id);
+    // Always use TMDB ID for consistent streaming navigation
+    // This ensures compatibility with the parent component's lookup logic
+    const playId = content.tmdb_id?.toString() || content.id;
+    onPlay(playId);
   };
 
   const handleCardClick = () => {
-    navigate(`/details/${content.type}/${content.imdb_id}`);
+    // Use TMDB ID for details navigation with proper fallback
+    const detailsId = content.tmdb_id || parseInt(content.id) || content.id;
+    navigate(`/details/${content.type}/${detailsId}`);
   };
 
   const handleTitleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/details/${content.type}/${content.imdb_id}`);
+    // Use TMDB ID for details navigation with proper fallback
+    const detailsId = content.tmdb_id || parseInt(content.id) || content.id;
+    navigate(`/details/${content.type}/${detailsId}`);
   };
 
   const handleMoreInfo = () => {
-    navigate(`/details/${content.type}/${content.imdb_id}`);
+    // Use TMDB ID for details navigation with proper fallback
+    const detailsId = content.tmdb_id || parseInt(content.id) || content.id;
+    navigate(`/details/${content.type}/${detailsId}`);
   };
 
   const handleAddToWatchlist = () => {
@@ -117,7 +127,7 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
     return (
       <div
         className="flex items-center gap-4 p-4 bg-slate-900/50 rounded-lg hover:bg-slate-800/50 transition-all duration-300 cursor-pointer group"
-        onClick={handleTitleClick}
+        onClick={handleCardClick}
       >
         {/* Compact Image */}
         <div className="flex-shrink-0 w-24 h-16 relative overflow-hidden rounded-md bg-gray-900">

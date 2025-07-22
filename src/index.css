@@ -183,6 +183,51 @@
   }
 }
 
+/* Enhanced scrollbar styles for AI suggestions */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.3) rgba(64, 64, 64, 0.1);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(64, 64, 64, 0.1);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
+
+.scrollbar-thumb-slate-600 {
+  scrollbar-color: rgba(71, 85, 105, 0.6) rgba(30, 41, 59, 0.1);
+}
+
+.scrollbar-thumb-slate-600::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.6);
+}
+
+.scrollbar-thumb-slate-600::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.8);
+}
+
+.scrollbar-track-slate-800 {
+  scrollbar-color: rgba(71, 85, 105, 0.6) rgba(30, 41, 59, 0.3);
+}
+
+.scrollbar-track-slate-800::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.3);
+}
+
 /* Custom scrollbar styles for modals */
 .modal-scrollbar {
   scrollbar-width: thin;

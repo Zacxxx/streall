@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, ChevronDown, Grid, Heart, Settings, X, Tv } from 'lucide-react';
+import { Search, User, ChevronDown, Grid, Heart, Settings, X, Tv, Sparkles } from 'lucide-react';
 import { NotificationBell, Notifications } from '@/components/notifications';
 import { tmdbService, type ContentItem } from '@/services/tmdb-service';
 
@@ -177,6 +177,7 @@ export function NetflixNavbar({
     { id: 'home', label: 'Home', path: '/', view: 'home' as View },
     { id: 'browse', label: 'Browse All', path: '/browse', icon: Grid },
     { id: 'search', label: 'Search', path: '/search', icon: Search },
+    { id: 'suggestions', label: 'AI Curator', path: '/suggestions', icon: Sparkles },
     { id: 'watchlist', label: 'My List', path: '/watchlist', icon: Heart, view: 'watchlist' as View },
     { id: 'movies', label: 'Movies', path: '/movies', view: 'movies' as View },
     { id: 'series', label: 'TV Shows', path: '/tv', view: 'series' as View },

@@ -1,5 +1,6 @@
 // Direct TMDB API service with 2embed streaming integration
 import { settingsService } from './settings-service';
+import { trackPerformance, trackError } from './monitoring-service';
 
 // Fallback API key for development - will be overridden by settings service in production
 const FALLBACK_TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || '17db4e1c6aec4f836a26810b82bb01b6';
@@ -155,9 +156,13 @@ class TMDBService {
 
   // Make API request to TMDB
   private async tmdbRequest(endpoint: string, params: Record<string, any> = {}): Promise<any> {
+    const startTime = Date.now();
     const apiKey = this.getApiKey();
     
     if (!apiKey) {
+      trackError('tmdb', 'tmdbRequest', 'TMDB API key not configured', false, {
+        endpoint
+      });
       throw new Error('TMDB API key not configured. Please configure your API key in settings.');
     }
 
@@ -166,6 +171,12 @@ class TMDBService {
     // Check cache first
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      // Track cache hit performance
+      trackPerformance('tmdb-api-request', startTime, true, {
+        service: 'tmdb',
+        endpoint,
+        cacheHit: true
+      });
       return cached.data;
     }
 
@@ -182,10 +193,30 @@ class TMDBService {
       const response = await fetch(url.toString());
       
       if (!response.ok) {
+        const errorMessage = `TMDB API Error: ${response.status} ${response.statusText}`;
+        
+        // Track specific error types
         if (response.status === 401) {
+          trackError('tmdb', 'tmdbRequest', 'Invalid TMDB API key', false, {
+            endpoint,
+            statusCode: response.status
+          });
           throw new Error('Invalid TMDB API key. Please check your API key in settings.');
         }
-        throw new Error(`TMDB API Error: ${response.status} ${response.statusText}`);
+        
+        if (response.status === 429) {
+          trackError('tmdb', 'tmdbRequest', 'Rate limit exceeded', true, {
+            endpoint,
+            statusCode: response.status
+          });
+        } else {
+          trackError('tmdb', 'tmdbRequest', errorMessage, true, {
+            endpoint,
+            statusCode: response.status
+          });
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -193,9 +224,32 @@ class TMDBService {
       // Cache the result
       this.cache.set(cacheKey, { data, timestamp: Date.now() });
       
+      // Track successful API call
+      trackPerformance('tmdb-api-request', startTime, true, {
+        service: 'tmdb',
+        endpoint,
+        cacheHit: false,
+        responseSize: JSON.stringify(data).length
+      });
+      
       return data;
     } catch (error) {
       console.error('TMDB API Request failed:', error);
+      
+      // Track failed performance
+      trackPerformance('tmdb-api-request', startTime, false, {
+        service: 'tmdb',
+        endpoint,
+        error: error.message
+      });
+      
+      if (!error.message.includes('TMDB API Error')) {
+        trackError('tmdb', 'tmdbRequest', error.message, true, {
+          endpoint,
+          errorType: 'network-error'
+        });
+      }
+      
       throw error;
     }
   }
