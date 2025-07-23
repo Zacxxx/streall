@@ -70,7 +70,7 @@ export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
         imdb_id: item.imdb_id,
         title: item.title,
         originalTitle: item.title,
-        type: item.type,
+        type: item.type === 'anime' ? 'tv' : item.type as 'movie' | 'tv',
         year: item.year || null,
         releaseDate: item.year ? `${item.year}-01-01` : '',
         overview: '',

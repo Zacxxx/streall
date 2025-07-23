@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { performanceOptimizationService, PerformanceOptimizationService } from '../performance-optimization-service';
+import { PerformanceOptimizationService } from '../performance-optimization-service';
 
 // Mock the TMDB service
 vi.mock('../tmdb-service', () => ({
@@ -85,6 +85,7 @@ describe('PerformanceOptimizationService', () => {
       vi.mocked(mockTmdbService.tmdbService.search).mockResolvedValue({
         results: [
           {
+            id: 1,
             tmdb_id: 1,
             title: 'Test Movie',
             type: 'movie' as const,
@@ -93,252 +94,255 @@ describe('PerformanceOptimizationService', () => {
             overview: 'Test overview',
             poster: 'test-poster.jpg',
             genres: ['Action'],
+            genreIds: [28],
             voteCount: 1000,
             popularity: 50,
-            releaseDate: '2023-01-01',
-            isAdult: false
+            releaseDate: '01',
+            false
           }
         ],
         totalResults: 1,
-        totalPages: 1,
-        page: 1
-      });
+        totalPas: 1,
+        p1
+   });
 
       const titles = ['Test Movie', 'Another Movie'];
-      const result = await service.optimizedContentSearch(titles);
+titles);
 
-      expect(result).toHaveLength(2);
-      expect(mockTmdbService.tmdbService.search).toHaveBeenCalledTimes(2);
-    });
+      expect(searchResult).toHaveLength(2);
+      es(2);
 
-    it('should handle search failures gracefully', async () => {
+
+    it('should handle search failures gracefully', async () =>
       const mockTmdbService = await import('../tmdb-service');
-      vi.mocked(mockTmdbService.tmdbService.search).mockRejectedValue(new Error('Search failed'));
+));
 
       const titles = ['Test Movie'];
-      const result = await service.optimizedContentSearch(titles);
 
-      expect(result).toHaveLength(0);
-    });
+
+      e
+
 
     it('should remove duplicate titles', async () => {
       const mockTmdbService = await import('../tmdb-service');
-      vi.mocked(mockTmdbService.tmdbService.search).mockResolvedValue({
-        results: [
+      vi.mocked(moe({
+        res[
           {
+            id: 1,
             tmdb_id: 1,
             title: 'Test Movie',
-            type: 'movie' as const,
+            type: 'movie const,
             rating: 8.0,
             year: 2023,
             overview: 'Test overview',
-            poster: 'test-poster.jpg',
-            genres: ['Action'],
+            poster: 'test-poste
+            genres: ['Action
+            genreIds: [28],
             voteCount: 1000,
-            popularity: 50,
-            releaseDate: '2023-01-01',
-            isAdult: false
+            popularity: 50
+           01',
+          se
           }
         ],
-        totalResults: 1,
-        totalPages: 1,
-        page: 1
+        totalRe
+        t1,
+1
       });
 
-      const titles = ['Test Movie', 'Test Movie', 'Test Movie'];
-      const result = await service.optimizedContentSearch(titles);
+'];
+      await service.optimizedContentSearch(titles);
 
-      expect(mockTmdbService.tmdbService.search).toHaveBeenCalledTimes(1);
-    });
+     1);
+
   });
 
-  describe('optimizeConcurrentAIRequests', () => {
-    it('should process AI requests concurrently', async () => {
-      const requests = [
+  describe('optimizeConc> {
+    it('s> {
+      const requests[
         {
-          id: 'ai1',
-          request: async () => 'AI Response 1'
+          ,
+         e 1'
         },
         {
-          id: 'ai2',
-          request: async () => 'AI Response 2'
-        }
+         ai2',
+        2'
+
       ];
 
-      const result = await service.optimizeConcurrentAIRequests(requests);
+      const result = await service.optimizeCo
 
-      expect(result.results).toHaveLength(2);
-      expect(result.successCount).toBe(2);
-      expect(result.failureCount).toBe(0);
+      expect(result.results).toHaveLength(
+      eBe(2);
+Be(0);
     });
 
-    it('should use cache when enabled', async () => {
+    it('s
       const requests = [
         {
-          id: 'cached-request',
-          request: async () => 'First Response'
-        }
+         ,
+        '
+ }
       ];
 
       // First request
-      const result1 = await service.optimizeConcurrentAIRequests(requests, { enableCache: true });
-      expect(result1.results[0]).toBe('First Response');
+;
+      expect(result1.results[0]).toBe('F);
 
-      // Second request should use cache
+      // cache
       const newRequests = [
         {
-          id: 'cached-request',
-          request: async () => 'Second Response'
-        }
+         st',
+        
+
       ];
 
-      const result2 = await service.optimizeConcurrentAIRequests(newRequests, { enableCache: true });
-      expect(result2.results[0]).toBe('First Response'); // Should be cached
+      c);
+ be cached
     });
 
-    it('should handle request deduplication', async () => {
-      let callCount = 0;
+    it('should handle re {
+      let= 0;
       const requests = [
         {
           id: 'duplicate',
           request: async () => {
-            callCount++;
-            return `Response ${callCount}`;
+           +;
+          
           }
         },
         {
           id: 'duplicate',
           request: async () => {
-            callCount++;
-            return `Response ${callCount}`;
-          }
-        }
+           ount++;
+         ount}`;
+        
+
       ];
 
-      const result = await service.optimizeConcurrentAIRequests(requests);
+      const concurrentResult = await service.optimizeConcurrentAIRequeststs);
 
-      // Should only call the request function once due to deduplication
-      expect(callCount).toBe(1);
-      expect(result.results).toHaveLength(2);
-    });
+      // Should only call the request functio
+      e(1);
+     (2);
+);
   });
 
-  describe('createLazyLoadObserver', () => {
-    it('should create intersection observer with correct options', () => {
-      // Mock IntersectionObserver
-      global.IntersectionObserver = vi.fn(() => ({
+  describe('createLazyLoadObserver> {
+    it('should create intersection observer with c
+      // Mock Intersectio
+      global.IntersectionOb
         observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: vi.fn()
+        unobservei.fn(),
+)
       })) as any;
 
       const callback = vi.fn();
-      const observer = service.createLazyLoadObserver(callback, {
-        rootMargin: '100px',
-        threshold: 0.5
+      service.createLa{
+        r
+.5
       });
 
-      expect(global.IntersectionObserver).toHaveBeenCalledWith(callback, {
-        rootMargin: '100px',
-        threshold: 0.5
-      });
-    });
+      expect(global.Inack, {
+        r100px',
+       
+     
+
   });
 
   describe('preloadImages', () => {
-    it('should preload images successfully', async () => {
+    it('should preload images succe) => {
       // Mock Image constructor
-      const mockImages: any[] = [];
+      const mockImages: any
       global.Image = vi.fn(() => {
         const mockImage = {
-          onload: null as (() => void) | null,
-          onerror: null as (() => void) | null,
+          onload:ull,
+          
           src: ''
-        };
+        
         mockImages.push(mockImage);
         
         // Simulate successful loading immediately
-        setTimeout(() => {
-          if (mockImage.onload) mockImage.onload();
+        setTim
+        
         }, 1);
         
-        return mockImage;
+e;
       }) as any;
 
-      const imageUrls = ['image1.jpg', 'image2.jpg'];
-      await expect(service.preloadImages(imageUrls, 'high')).resolves.toBeUndefined();
+      g'];
+      await expect(service.preloadImages(imageUrls, );
       
-      expect(global.Image).toHaveBeenCalledTimes(2);
+2);
     });
 
-    it('should handle image loading failures', async () => {
-      const mockImages: any[] = [];
+    it('should handle image loadin=> {
+      const mockImages: any [];
       global.Image = vi.fn(() => {
         const mockImage = {
-          onload: null as (() => void) | null,
-          onerror: null as (() => void) | null,
+          onload:ull,
+          l,
           src: ''
-        };
+        ;
         mockImages.push(mockImage);
         
         // Simulate error immediately
-        setTimeout(() => {
-          if (mockImage.onerror) mockImage.onerror();
+        setTim(() => {
+        );
         }, 1);
         
-        return mockImage;
+kImage;
       }) as any;
 
-      const imageUrls = ['invalid-image.jpg'];
-      await expect(service.preloadImages(imageUrls, 'low')).resolves.toBeUndefined();
+      ];
+      await expect(service.preloadImages(imageUrls, ed();
       
-      expect(global.Image).toHaveBeenCalledTimes(1);
-    });
+     es(1);
+);
   });
 
-  describe('performance metrics', () => {
-    it('should track performance metrics', async () => {
+  describe('performance  {
+    it('s
       const requests = [
         {
           id: 'metric-test',
           request: async () => {
-            // Add small delay to ensure measurable response time
-            await new Promise(resolve => setTimeout(resolve, 1));
-            return 'Success';
-          }
+            // Add small delaponse time
+           ve, 1));
+         s';
         }
+  }
       ];
 
-      await service.batchTMDBRequests(requests);
+ts);
       const metrics = service.getPerformanceMetrics();
 
       expect(metrics.requestCount).toBeGreaterThan(0);
-      expect(metrics.successRate).toBeGreaterThan(0);
-      expect(metrics.averageResponseTime).toBeGreaterThanOrEqual(0);
+      e
+(0);
     });
 
     it('should clear caches and reset metrics', () => {
-      service.clearCaches();
-      const metrics = service.getPerformanceMetrics();
+();
+      const metrics = service.getPerformanc;
 
       expect(metrics.requestCount).toBe(0);
       expect(metrics.successRate).toBe(0);
       expect(metrics.averageResponseTime).toBe(0);
-      expect(metrics.cacheHitRate).toBe(0);
-      expect(metrics.concurrentRequestsActive).toBe(0);
-    });
+      etoBe(0);
+     toBe(0);
+);
   });
 
-  describe('configuration updates', () => {
-    it('should update configuration correctly', () => {
+  describe('configuration u () => {
+    it('should update configuration co
       service.updateConfig(
         { maxConcurrentRequests: 10 },
-        { rootMargin: '200px' },
-        { maxConcurrentAIRequests: 5 }
+        
+}
       );
 
-      // Configuration is private, but we can test that the method doesn't throw
-      expect(() => service.updateConfig()).not.toThrow();
-    });
-  });
-});
+      /w
+     hrow();
+   );
+}); });
+  }

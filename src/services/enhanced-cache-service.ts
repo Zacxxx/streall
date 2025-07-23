@@ -287,7 +287,7 @@ export class EnhancedCacheService {
     const now = new Date();
     // Convert to GMT+1
     const gmt1 = new Date(now.getTime() + (60 * 60 * 1000));
-    return gmt1.toISOString().split('T')[0]; // YYYY-MM-DD format
+    return gmt1.toISOString().split('T')[0] || gmt1.toISOString(); // YYYY-MM-DD format
   }
 
   /**

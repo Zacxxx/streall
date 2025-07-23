@@ -51,8 +51,9 @@ export class PerformanceOptimizationService {
   
   // Request batching state
   private requestQueue: Map<string, Promise<any>> = new Map();
-  private batchQueue: Array<{ id: string; request: () => Promise<any>; resolve: (value: any) => void; reject: (error: any) => void }> = [];
-  private batchTimer: NodeJS.Timeout | null = null;
+  // These are currently not used but kept for future batch processing implementation
+  // private batchQueue: Array<{ id: string; request: () => Promise<any>; resolve: (value: any) => void; reject: (error: any) => void }> = [];
+  // private batchTimer: NodeJS.Timeout | null = null;
   
   // Performance tracking
   private metrics: PerformanceMetrics = {
@@ -106,7 +107,7 @@ export class PerformanceOptimizationService {
    */
   async batchTMDBRequests<T>(
     requests: Array<{ id: string; request: () => Promise<T> }>,
-    options?: { priority?: 'high' | 'normal' | 'low' }
+    _options?: { priority?: 'high' | 'normal' | 'low' }
   ): Promise<BatchProcessingResult<T | null>> {
     const startTime = Date.now();
     const results: (T | null)[] = [];
@@ -264,7 +265,7 @@ export class PerformanceOptimizationService {
       for (const { id, request } of requests) {
         const cached = this.getFromCache(id);
         if (cached) {
-          cachedResults.set(id, cached);
+          cachedResults.set(id, cached as T);
           successCount++;
         } else {
           uncachedRequests.push({ id, request });

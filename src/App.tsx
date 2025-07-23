@@ -280,7 +280,7 @@ function PlayerPage() {
               tmdb_id: animeData.id,
               title: animeData.title,
               originalTitle: animeData.title_jp || animeData.title,
-              type: 'anime' as const,
+              type: 'tv' as const,
               year: animeData.year,
               releaseDate: animeData.year ? `${animeData.year}-01-01` : '',
               overview: animeData.description || '',

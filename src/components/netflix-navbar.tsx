@@ -121,12 +121,11 @@ export function NetflixNavbar({
   };
 
   const handleSearchResultClick = (result: ContentItem) => {
-    if (result.type === 'anime') {
-      // For anime, navigate to anime watch page
-      navigate(`/watch/anime/${result.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`, {
+    if (result.type === 'tv') {
+      // For TV shows, navigate to TV watch page
+      navigate(`/watch/tv/${result.tmdb_id}`, {
         state: {
-          anime: result,
-          embedUrl: result.streamUrl
+          content: result
         }
       });
     } else {

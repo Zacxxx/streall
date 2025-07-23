@@ -11,8 +11,8 @@ import { smartContentMapper } from '@/services/smart-content-mapper';
 import { errorHandlingService } from '@/services/error-handling-service';
 import { performanceOptimizationService } from '@/services/performance-optimization-service';
 import { trackUserInteraction, trackPerformance } from '@/services/monitoring-service';
-import NetflixCard from '@/components/netflix-card';
-import LazyNetflixCard from '@/components/lazy-netflix-card';
+// import NetflixCard from '@/components/netflix-card';
+// import LazyNetflixCard from '@/components/lazy-netflix-card';
 import BatchContentLoader from '@/components/batch-content-loader';
 import { MonitoringDashboard } from '@/components/monitoring-dashboard';
 
@@ -98,32 +98,32 @@ const generateDailySelection = async (): Promise<DailySelection> => {
 };
 
 // Convert AI movie suggestions to TMDB ContentItems - EXACT same workflow as search
-const searchAndConvertMovies = async (movies: Movie[]): Promise<ContentItem[]> => {
-  console.log('Converting movies to content items using TMDB search:', movies);
-  const contentItems: ContentItem[] = [];
-  
-  for (const movie of movies) {
-    try {
-      console.log(`Searching TMDB for: ${movie.title}`);
-      // Use the exact same search method as search page
-      const searchResult = await tmdbService.search(movie.title, { type: 'movie' }, 1, 1);
-      console.log(`TMDB search result for ${movie.title}:`, searchResult);
-      
-      if (searchResult.results && searchResult.results.length > 0) {
-        const tmdbMovie = searchResult.results[0];
-        if (tmdbMovie) {
-          console.log('Adding TMDB movie:', tmdbMovie);
-          contentItems.push(tmdbMovie);
-        }
-      }
-    } catch (error) {
-      console.error(`Error searching TMDB for ${movie.title}:`, error);
-    }
-  }
-  
-  console.log('Final TMDB content items:', contentItems);
-  return contentItems;
-};
+// const searchAndConvertMovies = async (movies: Movie[]): Promise<ContentItem[]> => {
+//   console.log('Converting movies to content items using TMDB search:', movies);
+//   const contentItems: ContentItem[] = [];
+//   
+//   for (const movie of movies) {
+//     try {
+//       console.log(`Searching TMDB for: ${movie.title}`);
+//       // Use the exact same search method as search page
+//       const searchResult = await tmdbService.search(movie.title, { type: 'movie' }, 1, 1);
+//       console.log(`TMDB search result for ${movie.title}:`, searchResult);
+//       
+//       if (searchResult.results && searchResult.results.length > 0) {
+//         const tmdbMovie = searchResult.results[0];
+//         if (tmdbMovie) {
+//           console.log('Adding TMDB movie:', tmdbMovie);
+//           contentItems.push(tmdbMovie);
+//         }
+//       }
+//     } catch (error) {
+//       console.error(`Error searching TMDB for ${movie.title}:`, error);
+//     }
+//   }
+//   
+//   console.log('Final TMDB content items:', contentItems);
+//   return contentItems;
+// };
 
 
 
@@ -502,7 +502,7 @@ export function MovieSuggestions() {
         
         // Navigate to the watch page with the correct content type and ID
         // Use the same routing pattern as other components in the application
-        const contentType = item.type === 'anime' ? 'tv' : item.type;
+        const contentType = item.type;
         navigate(`/watch/${contentType}/${item.tmdb_id}`);
         
       } catch (error) {
@@ -516,7 +516,7 @@ export function MovieSuggestions() {
         });
         
         // Fallback to direct navigation
-        const contentType = item.type === 'anime' ? 'tv' : item.type;
+        const contentType = item.type;
         navigate(`/watch/${contentType}/${item.tmdb_id}`);
       }
     } else {
@@ -550,7 +550,7 @@ export function MovieSuggestions() {
         // Determine content type with enhanced fallback logic
         let contentType = 'movie'; // default
         if (matchingContent) {
-          contentType = matchingContent.type === 'anime' ? 'tv' : matchingContent.type;
+          contentType = matchingContent.type;
         } else if (isFromDaily) {
           // Daily content is typically movies, but check for TV indicators
           contentType = 'movie';

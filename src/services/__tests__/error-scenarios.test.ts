@@ -289,8 +289,8 @@ describe('Error Handling Scenarios', () => {
       const mockOperation = vi.fn().mockRejectedValue(error);
 
       // Simulate multiple failures to trigger circuit breaker
-      const failures = Array.from({ length: 5 }, () => 
-        errorHandlingService.executeWithRetry(mockOperation, { maxRetries: 0 }).catch(e => e)
+      const failures = Array.from({ length: 5 }, (_, index) => 
+        errorHandlingService.executeWithRetry(mockOperation, `circuit-breaker-operation-${index}`).catch(e => e)
       );
 
       const results = await Promise.all(failures);
@@ -305,7 +305,7 @@ describe('Error Handling Scenarios', () => {
       const mockOperation = vi.fn().mockRejectedValue(completeFailure);
 
       try {
-        await errorHandlingService.executeWithRetry(mockOperation);
+        await errorHandlingService.executeWithRetry(mockOperation, 'fallback-operation');
       } catch (error) {
         // Should provide fallback mechanism
         expect(error).toBeInstanceOf(Error);

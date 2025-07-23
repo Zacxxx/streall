@@ -63,7 +63,8 @@ describe('EnhancedCacheService', () => {
     popularity: 61.416,
     genres: ['Drama', 'Thriller'],
     genreIds: [18, 53],
-    runtime: 139
+    runtime: 139,
+    isAdult: false
   };
 
   beforeEach(() => {

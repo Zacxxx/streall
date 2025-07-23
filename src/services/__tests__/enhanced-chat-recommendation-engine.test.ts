@@ -34,7 +34,11 @@ describe('EnhancedChatRecommendationEngine', () => {
       overview: 'An insomniac office worker and a devil-may-care soap maker form an underground fight club.',
       type: 'movie' as const,
       runtime: 139,
-      isAdult: false
+      isAdult: false,
+      releaseDate: '1999-10-15',
+      voteCount: 26280,
+      popularity: 61.416,
+      genreIds: [18, 53]
     },
     {
       id: 2,
@@ -48,7 +52,11 @@ describe('EnhancedChatRecommendationEngine', () => {
       overview: 'The presidencies of Kennedy and Johnson through the eyes of an Alabama man.',
       type: 'movie' as const,
       runtime: 142,
-      isAdult: false
+      isAdult: false,
+      releaseDate: '1994-07-06',
+      voteCount: 25853,
+      popularity: 48.307,
+      genreIds: [18, 10749]
     }
   ];
 
@@ -125,7 +133,7 @@ describe('EnhancedChatRecommendationEngine', () => {
       });
 
       expect(contentProcessingEngine.convertAISuggestionsToTMDB).toHaveBeenCalledWith([
-        "Mad Max: Fury Road", "John Wick", "The Raid", "Baby Driver"
+        "Mad Max: Fury Road", "John Wick", "The Raid", "Baby Driver", "Mission: Impossible - Fallout", "Atomic Blonde"
       ]);
     });
 
@@ -377,7 +385,7 @@ describe('EnhancedChatRecommendationEngine', () => {
       const result = await engine.processUserRequest('action movies', 'test-session');
 
       expect(result.content).toEqual([]); // Should handle gracefully with empty content
-      expect(result.suggestedTitles).toEqual(['Mad Max: Fury Road', 'John Wick']);
+      expect(result.suggestedTitles).toEqual(['Mad Max: Fury Road', 'John Wick', 'The Raid', 'Baby Driver', 'Mission: Impossible - Fallout', 'Atomic Blonde']);
       expect(result.responseText).toBeDefined();
     });
 

@@ -75,7 +75,7 @@ export class SmartContentMapper {
         poster: this.normalizePosterUrl(tmdbContent.poster),
         backdropPath: this.normalizeBackdropUrl(tmdbContent.backdropPath),
         overview: tmdbContent.overview || '',
-        type: tmdbContent.type === 'anime' ? 'anime' : tmdbContent.type,
+        type: tmdbContent.type,
         runtime: tmdbContent.runtime,
         tmdb_rating: tmdbContent.rating,
         seasons: tmdbContent.seasons || undefined,
@@ -114,7 +114,7 @@ export class SmartContentMapper {
       }
 
       // Generate the appropriate streaming URL
-      const contentType = tmdbContent.type === 'anime' ? 'tv' : tmdbContent.type;
+      const contentType = tmdbContent.type;
       return tmdbService.getStreamingUrl(streamingId, contentType, season, episode);
     } catch (error) {
       console.error('Error generating streaming URL:', error);
@@ -203,7 +203,7 @@ export class SmartContentMapper {
       // Get external IDs if requested and not present
       if (options.includeExternalIds && !enrichedContent.imdb_id) {
         try {
-          const contentType = content.type === 'anime' ? 'tv' : content.type;
+          const contentType = content.type;
           const externalIds = await tmdbService.getExternalIds(content.tmdb_id, contentType);
           if (externalIds?.imdb_id) {
             enrichedContent.imdb_id = externalIds.imdb_id;
@@ -216,12 +216,12 @@ export class SmartContentMapper {
       // Generate streaming URLs if requested
       if (options.includeStreamingUrls) {
         const streamingId = enrichedContent.imdb_id || enrichedContent.tmdb_id;
-        const contentType = enrichedContent.type === 'anime' ? 'tv' : enrichedContent.type;
+        const contentType = enrichedContent.type;
         enrichedContent.streamUrl = tmdbService.getStreamingUrl(streamingId, contentType);
       }
 
       // Generate season URLs for TV shows if requested
-      if (options.includeSeasonUrls && (enrichedContent.type === 'tv' || enrichedContent.type === 'anime') && enrichedContent.seasons) {
+      if (options.includeSeasonUrls && enrichedContent.type === 'tv' && enrichedContent.seasons) {
         const streamingId = enrichedContent.imdb_id || enrichedContent.tmdb_id;
         const seasonUrls = Array.from({ length: enrichedContent.seasons }, (_, i) => ({
           season: i + 1,

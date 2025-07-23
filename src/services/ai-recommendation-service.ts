@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { contentProcessingEngine, ContentProcessingError, TMDBServiceError } from './content-processing-engine';
+import { contentProcessingEngine, ContentProcessingError } from './content-processing-engine';
 import { ContentItem, tmdbService } from './tmdb-service';
-import { enhancedChatRecommendationEngine, type EnhancedChatResponse } from './enhanced-chat-recommendation-engine';
+import { enhancedChatRecommendationEngine } from './enhanced-chat-recommendation-engine';
 import { errorHandlingService, AIServiceError, SuggestionsError } from './error-handling-service';
 import { performanceOptimizationService } from './performance-optimization-service';
-import { trackPerformance, trackError, monitoringService } from './monitoring-service';
+import { trackPerformance, trackError } from './monitoring-service';
 
 // Types for the AI Recommendation Service
 export interface CuratorPersona {
@@ -122,8 +122,8 @@ export class AIRecommendationService {
     }
   ];
 
-  // Enhanced predefined themes with sophisticated reasoning
-  private fallbackThemes = [
+  // Enhanced predefined themes with sophisticated reasoning - currently not used but kept for future implementation
+  /* private fallbackThemes = [
     {
       name: "Neo-Noir Masterpieces",
       description: "Dark, stylish films that explore the shadows of human nature through urban landscapes and moral ambiguity",
@@ -174,7 +174,7 @@ export class AIRecommendationService {
       description: "Films that demonstrate the unique vision and artistic voice of cinema's most distinctive directors",
       reasoning: "Cinema is an art form, and these directors are its greatest artists. Today we celebrate the power of personal vision in filmmaking—each selection bears the unmistakable signature of a master storyteller."
     }
-  ];
+  ]; */
 
   constructor() {
     this.initialize();
@@ -224,7 +224,7 @@ export class AIRecommendationService {
           tmdbContent = await this.validateAndEnrichContentOptimized(tmdbContent);
           
           if (tmdbContent.length === 0) {
-            throw new ContentProcessingError('No valid TMDB content found after processing and validation', 'daily-curator', 'validation');
+            throw new ContentProcessingError('No valid TMDB content found after processing and validation', 'daily-curator', false);
           }
           
           console.log(`Successfully converted ${tmdbContent.length}/${curatorResponse.suggestedTitles.length} suggestions to validated TMDB content`);
@@ -399,16 +399,17 @@ export class AIRecommendationService {
         throw new AIServiceError('Failed to parse AI response JSON', 'gemini', 'json-parsing', error);
       }
       
-      if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
-        throw new AIServiceError('AI service rate limit exceeded', 'gemini', 'rate-limit', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage?.includes('quota') || errorMessage?.includes('rate limit')) {
+        throw new AIServiceError('AI service rate limit exceeded', 'gemini', 'rate-limit', error instanceof Error ? error : undefined);
       }
       
-      if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        throw new AIServiceError('Network error connecting to AI service', 'gemini', 'network', error);
+      if (errorMessage?.includes('network') || errorMessage?.includes('fetch')) {
+        throw new AIServiceError('Network error connecting to AI service', 'gemini', 'network', error instanceof Error ? error : undefined);
       }
       
       throw new AIServiceError(
-        `Unexpected error in AI curator generation: ${error.message}`,
+        `Unexpected error in AI curator generation: ${errorMessage}`,
         'gemini',
         'unknown',
         error instanceof Error ? error : new Error(String(error))
@@ -455,7 +456,8 @@ export class AIRecommendationService {
           console.warn('Enhanced chat processing failed, using base implementation:', enhancedError);
           
           // Track enhanced engine failure
-          trackError('ai', 'processUserRequest', `Enhanced chat engine failed: ${enhancedError.message}`, true, {
+          const errorMessage = enhancedError instanceof Error ? enhancedError.message : String(enhancedError);
+          trackError('ai', 'processUserRequest', `Enhanced chat engine failed: ${errorMessage}`, true, {
             operation: 'enhanced-chat-fallback',
             fallbackUsed: true
           });
@@ -739,7 +741,8 @@ export class AIRecommendationService {
   }
 
   // Enhanced fallback methods for when AI is unavailable
-  private async getFallbackDailyCurator(): Promise<DailyCuratorResponse> {
+  // Fallback method for when AI is unavailable - currently not used but kept for future implementation
+  /* private async _getFallbackDailyCurator(): Promise<DailyCuratorResponse> {
     const curator = this.getRandomFallbackCurator();
     const theme = this.getContextualFallbackTheme();
     
@@ -754,11 +757,11 @@ export class AIRecommendationService {
       suggestedTitles,
       content
     };
-  }
+  } */
 
-  private getContextualFallbackTheme(): { name: string; description: string; reasoning: string } {
+  /* private getContextualFallbackTheme(): { name: string; description: string; reasoning: string } {
     const season = this.getCurrentSeason();
-    const timeOfDay = this.getTimeOfDay();
+    // const timeOfDay = this.getTimeOfDay(); // Currently not used but kept for future implementation
     const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     
     // Select theme based on context
@@ -793,10 +796,14 @@ export class AIRecommendationService {
       contextualThemes = this.fallbackThemes;
     }
     
-    return contextualThemes[Math.floor(Math.random() * contextualThemes.length)];
+    return contextualThemes[Math.floor(Math.random() * contextualThemes.length)] || {
+      name: 'General Entertainment',
+      description: 'A mix of popular movies and shows',
+      reasoning: 'Providing diverse entertainment options'
+    };
   }
 
-  private getContextualReasoning(baseReasoning: string, curator: CuratorPersona): string {
+  private getContextualReasoning(baseReasoning: string, _curator: CuratorPersona): string {
     const season = this.getCurrentSeason();
     const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     
@@ -818,7 +825,7 @@ export class AIRecommendationService {
     }
     
     return contextualPrefix + baseReasoning.toLowerCase();
-  }
+  } */
 
   // Get fallback TMDB content for chat based on message analysis
   private async getFallbackChatTMDBContent(message: string): Promise<ContentItem[]> {
@@ -857,7 +864,7 @@ export class AIRecommendationService {
     }
   }
 
-  private async getFallbackChatResponse(message: string, context?: RecommendationContext): Promise<ChatRecommendationResponse> {
+  private async getFallbackChatResponse(message: string, _context?: RecommendationContext): Promise<ChatRecommendationResponse> {
     const lowerMessage = message.toLowerCase();
     let responseText = "";
     let suggestedTitles: string[] = [];
@@ -949,7 +956,12 @@ export class AIRecommendationService {
       contextualCurators = this.fallbackCurators;
     }
     
-    return contextualCurators[Math.floor(Math.random() * contextualCurators.length)];
+    return contextualCurators[Math.floor(Math.random() * contextualCurators.length)] || {
+      name: 'The Curator',
+      description: 'knowledgeable and helpful',
+      expertise: ['general entertainment'],
+      bio: 'friendly and informative'
+    };
   }
 
   // Validation methods
@@ -1028,18 +1040,19 @@ export class AIRecommendationService {
   }
 
   // Handle TMDB search failures with proper error reporting
-  private handleTMDBSearchFailure(titles: string[], error: Error): DailySelectionError {
+  // Error handler for TMDB search failures - currently not used but kept for future implementation
+  /* private _handleTMDBSearchFailure(titles: string[], error: Error): DailySelectionError {
     if (error instanceof ContentProcessingError) {
       return new DailySelectionError(
         `Failed to process content titles: ${titles.join(', ')}`,
         error,
         error.recoverable
       );
-    } else if (error instanceof TMDBServiceError) {
+    } else if (error.name === 'TMDBServiceError') {
       return new DailySelectionError(
         `TMDB service error while searching for: ${titles.join(', ')}`,
         error,
-        error.recoverable
+        (error as any).recoverable || false
       );
     } else {
       return new DailySelectionError(
@@ -1048,7 +1061,7 @@ export class AIRecommendationService {
         false
       );
     }
-  }
+  } */
 
   private buildContextString(context?: RecommendationContext): string {
     if (!context) return "";
@@ -1237,51 +1250,7 @@ export class AIRecommendationService {
     return [];
   }
 
-  // Enhanced fallback TMDB content with better error handling
-  private async getFallbackTMDBContent(theme: string): Promise<ContentItem[]> {
-    try {
-      console.log(`Generating fallback TMDB content for theme: ${theme}`);
-      
-      // Define fallback content based on theme
-      const fallbackTitles = this.getFallbackTitlesByTheme(theme);
-      
-      // Try to convert fallback titles to TMDB content
-      const tmdbContent = await contentProcessingEngine.convertAISuggestionsToTMDB(fallbackTitles);
-      
-      if (tmdbContent.length > 0) {
-        console.log(`Successfully generated ${tmdbContent.length} fallback TMDB items`);
-        return tmdbContent;
-      }
-      
-      console.warn('Fallback TMDB content generation failed, returning empty array');
-      return [];
-    } catch (error) {
-      console.error('Error generating fallback TMDB content:', error);
-      return [];
-    }
-  }
 
-  // Get fallback titles based on theme
-  private getFallbackTitlesByTheme(theme: string): string[] {
-    const lowerTheme = theme.toLowerCase();
-    
-    if (lowerTheme.includes('noir') || lowerTheme.includes('crime')) {
-      return ["The Maltese Falcon", "Double Indemnity", "The Third Man", "Chinatown", "L.A. Confidential", "Blade Runner"];
-    } else if (lowerTheme.includes('international') || lowerTheme.includes('world')) {
-      return ["Seven Samurai", "8½", "The Rules of the Game", "Tokyo Story", "Bicycle Thieves", "Persona"];
-    } else if (lowerTheme.includes('horror') || lowerTheme.includes('psychological')) {
-      return ["Psycho", "The Exorcist", "Rosemary's Baby", "The Shining", "Hereditary", "Get Out"];
-    } else if (lowerTheme.includes('comedy')) {
-      return ["Some Like It Hot", "The Grand Budapest Hotel", "Dr. Strangelove", "Annie Hall", "Parasite", "The Nice Guys"];
-    } else if (lowerTheme.includes('sci-fi') || lowerTheme.includes('science')) {
-      return ["2001: A Space Odyssey", "Blade Runner", "Alien", "The Matrix", "Arrival", "Ex Machina"];
-    } else if (lowerTheme.includes('romance') || lowerTheme.includes('love')) {
-      return ["Casablanca", "Roman Holiday", "Before Sunrise", "Her", "The Princess Bride", "Eternal Sunshine of the Spotless Mind"];
-    } else {
-      // Default high-quality selection
-      return ["The Godfather", "Citizen Kane", "Vertigo", "Pulp Fiction", "The Shawshank Redemption", "Goodfellas"];
-    }
-  }
 }
 
 // Export singleton instance

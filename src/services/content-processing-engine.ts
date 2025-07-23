@@ -10,12 +10,7 @@ export class ContentProcessingError extends Error {
   }
 }
 
-export class TMDBServiceError extends Error {
-  constructor(message: string, public endpoint: string, public recoverable: boolean = true) {
-    super(message);
-    this.name = 'TMDBServiceError';
-  }
-}
+
 
 // Interface for content processing results
 export interface ProcessingResult {
@@ -93,7 +88,7 @@ export class ContentProcessingEngine {
           throw new ContentProcessingError(
             'No valid content found after processing all suggestions',
             titles.join(', '),
-            'batch-processing'
+            false
           );
         }
         
@@ -177,7 +172,7 @@ export class ContentProcessingEngine {
    * Process multiple titles concurrently with optimized rate limiting and batching
    */
   async batchProcessTitles(titles: string[]): Promise<BatchProcessingResult> {
-    const startTime = Date.now();
+    // const startTime = Date.now(); // Currently not used but kept for future performance tracking
     const uniqueTitles = [...new Set(titles)]; // Remove duplicates
     
     console.log(`Optimized batch processing ${uniqueTitles.length} unique titles`);
@@ -204,7 +199,7 @@ export class ContentProcessingEngine {
       } else {
         return {
           content: null,
-          title: uniqueTitles[index],
+          title: uniqueTitles[index] || 'Unknown',
           success: false,
           error: 'Processing failed',
           processingTime: 0
@@ -391,7 +386,7 @@ export class ContentProcessingEngine {
     preferredType?: 'movie' | 'tv'
   ): ContentItem | null {
     if (results.length === 0) return null;
-    if (results.length === 1) return results[0];
+    if (results.length === 1) return results[0] || null;
 
     // Score each result
     const scoredResults = results.map(item => ({
@@ -406,11 +401,11 @@ export class ContentProcessingEngine {
     const bestMatch = scoredResults[0];
     const minScore = 0.3; // Minimum similarity threshold
 
-    if (bestMatch.score >= minScore) {
+    if (bestMatch && bestMatch.score >= minScore) {
       return bestMatch.item;
     }
 
-    console.warn(`No good match found for "${originalTitle}". Best score: ${bestMatch.score}`);
+    console.warn(`No good match found for "${originalTitle}". Best score: ${bestMatch?.score || 0}`);
     return null;
   }
 
@@ -472,21 +467,21 @@ export class ContentProcessingEngine {
   private levenshteinDistance(str1: string, str2: string): number {
     const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
     
-    for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-    for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+    for (let i = 0; i <= str1.length; i++) matrix[0]![i] = i;
+    for (let j = 0; j <= str2.length; j++) matrix[j]![0] = j;
     
     for (let j = 1; j <= str2.length; j++) {
       for (let i = 1; i <= str1.length; i++) {
         const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
-        matrix[j][i] = Math.min(
-          matrix[j][i - 1] + 1,     // deletion
-          matrix[j - 1][i] + 1,     // insertion
-          matrix[j - 1][i - 1] + indicator // substitution
+        matrix[j]![i] = Math.min(
+          matrix[j]![i - 1] + 1,     // deletion
+          matrix[j - 1]![i] + 1,     // insertion
+          matrix[j - 1]![i - 1] + indicator // substitution
         );
       }
     }
     
-    return matrix[str2.length][str1.length];
+    return matrix[str2.length]![str1.length];
   }
 
   /**
@@ -600,13 +595,14 @@ export class ContentProcessingEngine {
   /**
    * Utility method to chunk array into smaller arrays
    */
-  private chunkArray<T>(array: T[], chunkSize: number): T[][] {
+  // Utility method to chunk array - currently not used but kept for future batch processing optimization
+  /* private _chunkArray<T>(array: T[], chunkSize: number): T[][] {
     const chunks: T[][] = [];
     for (let i = 0; i < array.length; i += chunkSize) {
       chunks.push(array.slice(i, i + chunkSize));
     }
     return chunks;
-  }
+  } */
 
   /**
    * Utility method for delays

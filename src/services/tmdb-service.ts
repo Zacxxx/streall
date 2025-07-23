@@ -14,7 +14,7 @@ export interface ContentItem {
   imdb_id?: string;
   title: string;
   originalTitle?: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv';
   year?: number | null;
   releaseDate: string;
   overview: string;
@@ -34,13 +34,14 @@ export interface ContentItem {
 }
 
 export interface SearchFilters {
-  type?: 'all' | 'movie' | 'tv' | 'anime';
+  type?: 'all' | 'movie' | 'tv';
   genre?: number;
   year?: number;
   minRating?: number;
   maxRating?: number;
   sortBy?: 'popularity' | 'rating' | 'year' | 'title';
   sortOrder?: 'asc' | 'desc';
+  includeAdult?: boolean;
 }
 
 export interface PaginatedResponse<T> {
@@ -240,11 +241,12 @@ class TMDBService {
       trackPerformance('tmdb-api-request', startTime, false, {
         service: 'tmdb',
         endpoint,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       
-      if (!error.message.includes('TMDB API Error')) {
-        trackError('tmdb', 'tmdbRequest', error.message, true, {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (!errorMessage.includes('TMDB API Error')) {
+        trackError('tmdb', 'tmdbRequest', errorMessage, true, {
           endpoint,
           errorType: 'network-error'
         });
@@ -450,11 +452,6 @@ class TMDBService {
         results = [...movies, ...tvShows].slice(0, limit);
         totalPages = Math.max(movieData.total_pages, tvData.total_pages);
         totalResults = movieData.total_results + tvData.total_results;
-      } else if (filters.type === 'anime') {
-        // Anime is not supported by TMDB, return empty results
-        results = [];
-        totalPages = 1;
-        totalResults = 0;
       } else {
         // Search specific type (movie or tv)
         const endpoint = filters.type === 'movie' ? '/search/movie' : '/search/tv';

@@ -45,9 +45,9 @@ export interface ServiceHealthMetrics {
   }
   contentProcessing: {
     successRate: number
-    averageProcessingTime: number
-    totalProcessed: number
-    failures: number
+    averageResponseTime: number
+    totalRequests: number
+    errors: number
   }
 }
 
@@ -193,9 +193,9 @@ class MonitoringService {
       if (!acc[error.service]) {
         acc[error.service] = { count: 0, lastError: error.timestamp }
       }
-      acc[error.service].count++
-      if (error.timestamp > acc[error.service].lastError) {
-        acc[error.service].lastError = error.timestamp
+      acc[error.service]!.count++
+      if (error.timestamp > acc[error.service]!.lastError) {
+        acc[error.service]!.lastError = error.timestamp
       }
       return acc
     }, {} as Record<string, { count: number; lastError: Date }>)

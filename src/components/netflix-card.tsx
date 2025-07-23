@@ -64,12 +64,13 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
     navigate(`/details/${content.type}/${detailsId}`);
   };
 
-  const handleTitleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Use TMDB ID for details navigation with proper fallback
-    const detailsId = content.tmdb_id || parseInt(content.id) || content.id;
-    navigate(`/details/${content.type}/${detailsId}`);
-  };
+  // Title click handler is currently not used but kept for future implementation
+  // const handleTitleClick = (e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  //   // Use TMDB ID for details navigation with proper fallback
+  //   const detailsId = content.tmdb_id || parseInt(content.id) || content.id;
+  //   navigate(`/details/${content.type}/${detailsId}`);
+  // };
 
   const handleMoreInfo = () => {
     // Use TMDB ID for details navigation with proper fallback

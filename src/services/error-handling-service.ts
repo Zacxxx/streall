@@ -179,7 +179,8 @@ export class ErrorHandlingService {
       name: 'ai-service-fallback',
       priority: 1,
       canRecover: (error) => error instanceof AIServiceError,
-      recover: async (error: AIServiceError, context) => {
+      recover: async (_error: Error, context) => {
+        // const aiError = error as AIServiceError; // Currently not used but kept for future error handling
         console.log('Applying AI service fallback strategy');
         
         if (context?.operation === 'generateDailyCurator') {
@@ -188,7 +189,7 @@ export class ErrorHandlingService {
           return this.getFallbackChatResponse(context.userMessage || '');
         }
         
-        throw error;
+        throw _error;
       }
     });
 
@@ -197,7 +198,7 @@ export class ErrorHandlingService {
       name: 'tmdb-service-fallback',
       priority: 2,
       canRecover: (error) => error instanceof TMDBServiceError,
-      recover: async (error: TMDBServiceError, context) => {
+      recover: async (_error: Error, context) => {
         console.log('Applying TMDB service fallback strategy');
         
         // Try to use cached content first
@@ -215,7 +216,7 @@ export class ErrorHandlingService {
       name: 'content-processing-fallback',
       priority: 3,
       canRecover: (error) => error instanceof ContentProcessingError,
-      recover: async (error: ContentProcessingError, context) => {
+      recover: async (_error: Error, context) => {
         console.log('Applying content processing fallback strategy');
         
         // Return partial results if available
@@ -233,7 +234,7 @@ export class ErrorHandlingService {
       name: 'network-retry',
       priority: 4,
       canRecover: (error) => error instanceof NetworkError,
-      recover: async (error: NetworkError, context) => {
+      recover: async (error: Error, context) => {
         console.log('Applying network retry strategy');
         
         if (context?.retryFunction && context.retryAttempt < this.retryConfig.maxAttempts) {
@@ -347,7 +348,7 @@ export class ErrorHandlingService {
     }
     
     return USER_ERROR_MESSAGES[normalizedError.name] || 
-           USER_ERROR_MESSAGES['UNKNOWN_ERROR'];
+           USER_ERROR_MESSAGES['UNKNOWN_ERROR'] || 'An unexpected error occurred';
   }
 
   /**
@@ -360,7 +361,7 @@ export class ErrorHandlingService {
       return normalizedError.retryable === true;
     }
     
-    return this.retryConfig.retryableErrors.includes(normalizedError.name);
+    return this.retryConfig.retryableErrors.includes((normalizedError as any).name || 'UNKNOWN_ERROR');
   }
 
   /**
@@ -451,7 +452,9 @@ export class ErrorHandlingService {
     
     for (const [key, data] of this.errorHistory.entries()) {
       const errorType = key.split(':')[0];
-      errorTypes[errorType] = (errorTypes[errorType] || 0) + data.count;
+      if (errorType) {
+        errorTypes[errorType] = (errorTypes[errorType] || 0) + data.count;
+      }
       totalErrors += data.count;
     }
     
@@ -485,26 +488,64 @@ export class ErrorHandlingService {
     const lowerMessage = userMessage.toLowerCase();
     let responseText = "I understand you're looking for recommendations. ";
     let suggestedTitles: string[] = [];
+    let detectedPreferences: any = {
+      genres: [],
+      excludedGenres: [],
+      contentTypes: ['movie'],
+      moods: [],
+      themes: [],
+      specificRequests: [],
+      languages: []
+    };
     
     if (lowerMessage.includes('action')) {
       responseText += "Here are some excellent action films that showcase exceptional choreography and storytelling.";
       suggestedTitles = ["Mad Max: Fury Road", "John Wick", "The Raid", "Baby Driver"];
+      detectedPreferences.genres = ['action'];
+      detectedPreferences.moods = ['energetic'];
     } else if (lowerMessage.includes('comedy')) {
       responseText += "These comedies blend humor with intelligence and heart.";
       suggestedTitles = ["The Grand Budapest Hotel", "Parasite", "Knives Out", "Hunt for the Wilderpeople"];
+      detectedPreferences.genres = ['comedy'];
+      detectedPreferences.moods = ['light-hearted'];
     } else if (lowerMessage.includes('horror')) {
       responseText += "These horror films prioritize psychological tension and artistic merit.";
       suggestedTitles = ["Hereditary", "The Witch", "Get Out", "Midsommar"];
+      detectedPreferences.genres = ['horror'];
+      detectedPreferences.moods = ['intense'];
+    } else if (lowerMessage.includes('sci-fi') || lowerMessage.includes('science fiction')) {
+      responseText += "These science fiction films explore complex themes and innovative storytelling.";
+      suggestedTitles = ["Blade Runner 2049", "Arrival", "Ex Machina", "Interstellar"];
+      detectedPreferences.genres = ['sci-fi'];
+      detectedPreferences.moods = ['contemplative'];
+    } else if (lowerMessage.includes('thought-provoking') || lowerMessage.includes('contemplative') || 
+               (lowerMessage.includes('contemporary') && lowerMessage.includes('not horror'))) {
+      responseText += "These films offer deep, contemplative experiences.";
+      suggestedTitles = ["The Tree of Life", "Her", "Moonlight", "Manchester by the Sea"];
+      detectedPreferences.moods = ['contemplative'];
+      detectedPreferences.themes = ['philosophical'];
+      if (lowerMessage.includes('international')) {
+        detectedPreferences.languages = ['international'];
+      }
+    } else if (lowerMessage.includes('international') || lowerMessage.includes('foreign')) {
+      responseText += "These international films showcase diverse storytelling traditions.";
+      suggestedTitles = ["Parasite", "Roma", "Amélie", "The Handmaiden"];
+      detectedPreferences.languages = ['international'];
+      detectedPreferences.moods = ['contemplative'];
     } else {
       responseText += "Here are some critically acclaimed films across different genres.";
       suggestedTitles = ["The Godfather", "Pulp Fiction", "The Shawshank Redemption", "Goodfellas"];
+      detectedPreferences.genres = ['drama'];
     }
     
     return {
       responseText,
       suggestedTitles,
       confidence: 0.6,
-      content: []
+      content: [],
+      detectedPreferences,
+      conversationFlow: 'recommending',
+      recommendationReasoning: 'Generated using fallback recommendations based on detected preferences'
     };
   }
 
