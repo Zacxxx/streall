@@ -104,7 +104,7 @@ export class SmartContentMapper {
       // Determine the best ID to use for streaming
       let streamingId: string | number;
       
-      // Use IMDB ID for streaming when available and valid (for better compatibility with 2embed)
+      // Use IMDB ID for streaming when available and valid (for better compatibility with SuperEmbed)
       if (preferImdbId && tmdbContent.imdb_id && tmdbContent.imdb_id.startsWith('tt')) {
         // Use IMDB ID when it's a valid IMDB ID (starts with 'tt')
         streamingId = tmdbContent.imdb_id;

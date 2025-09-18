@@ -226,22 +226,22 @@ describe('TMDB Service Integration', () => {
   describe('Streaming URLs', () => {
     it('should generate streaming URL with IMDB ID', () => {
       const url = service.getStreamingUrl('tt0137523', 'movie');
-      expect(url).toBe('https://www.2embed.cc/embed/tt0137523');
+      expect(url).toBe('https://multiembed.mov/?video_id=tt0137523');
     });
 
     it('should generate streaming URL with TMDB ID', () => {
       const url = service.getStreamingUrl(550, 'movie');
-      expect(url).toBe('https://www.2embed.cc/embed/550');
+      expect(url).toBe('https://multiembed.mov/?video_id=550&tmdb=1');
     });
 
     it('should generate TV streaming URL with season and episode', () => {
       const url = service.getStreamingUrl('tt0903747', 'tv', 1, 5);
-      expect(url).toBe('https://www.2embed.cc/embedtv/tt0903747&s=1&e=5');
+      expect(url).toBe('https://multiembed.mov/?video_id=tt0903747&s=1&e=5');
     });
 
     it('should generate TV streaming URL without episode', () => {
       const url = service.getStreamingUrl('tt0903747', 'tv', 1);
-      expect(url).toBe('https://www.2embed.cc/embedtv/tt0903747&s=1');
+      expect(url).toBe('https://multiembed.mov/?video_id=tt0903747&s=1');
     });
   });
 

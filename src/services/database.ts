@@ -167,7 +167,7 @@ class DatabaseService {
     return {
       status: 'healthy',
       service: 'TMDB Frontend Service',
-      features: ['TMDB API', '2embed streaming', 'Direct frontend calls', 'No backend required'],
+      features: ['TMDB API', 'SuperEmbed streaming', 'Direct frontend calls', 'No backend required'],
       version: '4.0.0-frontend-only',
       timestamp: new Date().toISOString()
     };

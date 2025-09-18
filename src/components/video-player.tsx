@@ -259,7 +259,7 @@ export function VideoPlayer({ content, embedUrl, onBack }: VideoPlayerProps) {
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Player:</span>
-                  <span className="text-slate-300">2embed.cc</span>
+                  <span className="text-slate-300">SuperEmbed</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Quality:</span>

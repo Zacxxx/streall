@@ -1,11 +1,11 @@
 # 🎬 Streall - Frontend TMDB Streaming Platform
 
-A modern **frontend-only** streaming platform powered by **TMDB API** with **2embed** integration for seamless movie and TV show streaming.
+A modern **frontend-only** streaming platform powered by **TMDB API** with **SuperEmbed** integration for seamless movie and TV show streaming.
 
 ## ✨ Features
 
 - 🎥 **Direct TMDB Integration**: Real-time access to millions of movies and TV shows
-- 📺 **2embed Streaming**: Built-in streaming with multiple embed options
+- 📺 **SuperEmbed Streaming**: Simple iframe integration via multiembed.mov
 - 🔍 **Advanced Search**: Fast, comprehensive search across all content
 - 🎭 **Genre Discovery**: Browse content by categories and filters
 - 📱 **Responsive Design**: Works perfectly on all devices
@@ -55,19 +55,11 @@ A modern **frontend-only** streaming platform powered by **TMDB API** with **2em
 ### Simplified Frontend-Only Stack
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
 - **API**: Direct TMDB API calls from browser
-- **Streaming**: 2embed integration
+- **Streaming**: SuperEmbed integration
 - **Hosting**: Any static host (Vercel, Netlify, etc.)
 - **No Backend**: Pure client-side application
 
-### 2embed Streaming URLs
-
-The platform automatically generates streaming URLs:
-
-- **Movies**: `https://www.2embed.cc/embed/{tmdb_id}`
-- **TV Episodes**: `https://www.2embed.cc/embedtv/{tmdb_id}&s={season}&e={episode}`
-- **TV Seasons**: `https://www.2embed.cc/embedtvfull/{tmdb_id}`
-
-## 🎯 Key Services
+### SuperEmbed Streaming URLs\n\nThe platform automatically generates streaming URLs using SuperEmbed (multiembed.mov):\n\n- **Movies**: \https://multiembed.mov/?video_id={imdb_id}\\n- **TV Episodes**: \https://multiembed.mov/?video_id={imdb_id}&s={season}&e={episode}\\n- **TMDB fallback**: add \&tmdb=1\ when only a TMDB id is available\n- **VIP mode**: append \useVip=true\ in code to request \directstream.php\ URLs\n\n## 🎯 Key Services
 
 ### TMDB Service (`src/services/tmdb-service.ts`)
 Direct TMDB API integration with:
@@ -98,7 +90,7 @@ Content management and streaming:
 - **NetflixHero**: Main banner with featured content
 - **ContentRows**: Horizontal scrolling content rows
 - **UltraSearch**: Advanced search with filters
-- **VideoPlayer**: Integrated 2embed player
+- **VideoPlayer**: Integrated SuperEmbed player
 - **AllContentBrowser**: Paginated content browser
 
 ### Backend Components (`src/components/backend/`)
@@ -191,11 +183,7 @@ This architecture eliminates:
 - Year-based filtering and advanced sorting
 - Trending and popular content detection
 
-### Streaming Integration
-- One-click streaming for any content
-- Automatic episode navigation for TV shows
-- Season-wise streaming for binge-watching
-- Responsive video player with 2embed
+### Streaming Integration\n- One-click streaming for any content\n- Automatic episode navigation for TV shows\n- Season-wise streaming for binge-watching\n- Responsive video player with SuperEmbed
 
 ### Content Management
 - Real-time trending content
@@ -267,3 +255,4 @@ MIT License - see LICENSE file for details
 ### Quick Deploy Links
 - [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone)
 - [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy)
+

@@ -36,7 +36,7 @@ describe('Daily Curator TMDB Integration', () => {
         episodes: null,
         status: 'Released',
         isAdult: false,
-        streamUrl: 'https://www.2embed.cc/embed/tt0111161'
+        streamUrl: 'https://multiembed.mov/?video_id=tt0111161'
       },
       {
         id: 2,
@@ -59,7 +59,7 @@ describe('Daily Curator TMDB Integration', () => {
         episodes: null,
         status: 'Released',
         isAdult: false,
-        streamUrl: 'https://www.2embed.cc/embed/tt0068646'
+        streamUrl: 'https://multiembed.mov/?video_id=tt0068646'
       }
     ];
 
@@ -83,7 +83,7 @@ describe('Daily Curator TMDB Integration', () => {
       title: 'The Shawshank Redemption',
       type: 'movie',
       rating: 9.3,
-      streamUrl: 'https://www.2embed.cc/embed/tt0111161'
+      streamUrl: 'https://multiembed.mov/?video_id=tt0111161'
     });
 
     // Verify the content processing engine was called
@@ -120,7 +120,7 @@ describe('Daily Curator TMDB Integration', () => {
         episodes: null,
         status: 'Released',
         isAdult: false,
-        streamUrl: 'https://www.2embed.cc/embed/3'
+        streamUrl: 'https://multiembed.mov/?video_id=3&tmdb=1'
       }
     ];
 
@@ -164,7 +164,7 @@ describe('Daily Curator TMDB Integration', () => {
         episodes: null,
         status: 'Released',
         isAdult: false,
-        streamUrl: 'https://www.2embed.cc/embed/1'
+        streamUrl: 'https://multiembed.mov/?video_id=1&tmdb=1'
       }
     ];
 
@@ -172,7 +172,7 @@ describe('Daily Curator TMDB Integration', () => {
       {
         ...mockRawContent[0],
         imdb_id: 'tt1234567',
-        streamUrl: 'https://www.2embed.cc/embed/tt1234567',
+        streamUrl: 'https://multiembed.mov/?video_id=tt1234567',
         qualityScore: 75,
         isHighQuality: true,
         isPopular: true,
@@ -190,7 +190,7 @@ describe('Daily Curator TMDB Integration', () => {
     expect(result.content![0]).toMatchObject({
       title: 'Test Movie',
       imdb_id: 'tt1234567',
-      streamUrl: 'https://www.2embed.cc/embed/tt1234567'
+      streamUrl: 'https://multiembed.mov/?video_id=tt1234567'
     });
 
     // Verify enrichment was called
@@ -233,7 +233,7 @@ describe('Daily Curator TMDB Integration', () => {
         episodes: null,
         status: 'Released',
         isAdult: false,
-        streamUrl: 'https://www.2embed.cc/embed/tt0111161'
+        streamUrl: 'https://multiembed.mov/?video_id=tt0111161'
       }
     ];
 

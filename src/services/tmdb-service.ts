@@ -1,5 +1,6 @@
-// Direct TMDB API service with 2embed streaming integration
+// Direct TMDB API service with SuperEmbed streaming integration
 import { settingsService } from './settings-service';
+import { buildSuperEmbedUrl } from './superembed-service';
 import { trackPerformance, trackError } from './monitoring-service';
 
 // Fallback API key for development - will be overridden by settings service in production
@@ -325,42 +326,33 @@ class TMDBService {
       status: item.status || null,
       isAdult: item.adult || false,
       // Use IMDB ID for streaming if available, otherwise use TMDB ID
-      streamUrl: this.generate2EmbedUrl(imdbId || item.id, finalType)
+      streamUrl: this.generateSuperEmbedUrl(imdbId || item.id, finalType)
     };
 
     return contentItem;
   }
 
-  // Generate 2embed streaming URLs
-  private generate2EmbedUrl(id: number | string, type: 'movie' | 'tv', season?: number, episode?: number): string {
-    // Handle IMDB IDs (starting with 'tt') vs TMDB IDs (numeric)
-    // const isImdbId = typeof id === 'string' && id.startsWith('tt');
-    
-    if (type === 'tv') {
-      if (season && episode) {
-        // Specific episode - use embedtv with season and episode parameters
-        return `https://www.2embed.cc/embedtv/${id}&s=${season}&e=${episode}`;
-      } else if (season) {
-        // Full season - use embedtv with just season parameter
-        return `https://www.2embed.cc/embedtv/${id}&s=${season}`;
-      } else {
-        // Full TV series - use embedtvfull
-        return `https://www.2embed.cc/embedtvfull/${id}`;
-      }
-    } else {
-      // Movie - simple embed
-      return `https://www.2embed.cc/embed/${id}`;
-    }
+  // Generate SuperEmbed streaming URLs
+  private generateSuperEmbedUrl(id: number | string, type: 'movie' | 'tv', season?: number, episode?: number): string {
+    const stringId = id.toString();
+    const isImdbId = typeof id === 'string' && stringId.trim().startsWith('tt');
+
+    return buildSuperEmbedUrl(type, {
+      imdbId: isImdbId ? stringId : undefined,
+      tmdbId: isImdbId ? undefined : stringId,
+      season,
+      episode,
+    });
   }
 
   // Get streaming URL for any content (supports both TMDB and IMDB IDs)
   getStreamingUrl(id: number | string, type: 'movie' | 'tv', season?: number, episode?: number): string {
-    return this.generate2EmbedUrl(id, type, season, episode);
+    return this.generateSuperEmbedUrl(id, type, season, episode);
   }
 
   // Get streaming URL specifically for IMDB ID
   getStreamingUrlByImdbId(imdbId: string, type: 'movie' | 'tv', season?: number, episode?: number): string {
-    return this.generate2EmbedUrl(imdbId, type, season, episode);
+    return this.generateSuperEmbedUrl(imdbId, type, season, episode);
   }
 
   // Get trending content
@@ -503,7 +495,7 @@ class TMDBService {
         seasonUrls: type === 'tv' && item.seasons ? 
           Array.from({ length: item.seasons }, (_, i) => ({
             season: i + 1,
-            url: this.generate2EmbedUrl(item.tmdb_id, 'tv', i + 1)
+            url: this.generateSuperEmbedUrl(item.tmdb_id, 'tv', i + 1)
           })) : null
       };
     } catch (error) {
@@ -526,7 +518,7 @@ class TMDBService {
         airDate: episode.air_date,
         stillPath: episode.still_path ? `${TMDB_IMAGE_BASE_URL}w500${episode.still_path}` : null,
         voteAverage: episode.vote_average,
-        streamUrl: this.generate2EmbedUrl(tvId, 'tv', seasonNumber, episode.episode_number)
+        streamUrl: this.generateSuperEmbedUrl(tvId, 'tv', seasonNumber, episode.episode_number)
       }));
       
       return {
@@ -735,7 +727,7 @@ class TMDBService {
       if (externalIds?.imdb_id && !contentData.imdb_id) {
         contentData.imdb_id = externalIds.imdb_id;
         // Update stream URL to use IMDB ID
-        contentData.streamUrl = this.generate2EmbedUrl(externalIds.imdb_id, type);
+        contentData.streamUrl = this.generateSuperEmbedUrl(externalIds.imdb_id, type);
       }
 
       return contentData;
@@ -749,3 +741,10 @@ class TMDBService {
 // Export singleton instance
 export const tmdbService = new TMDBService();
 export default tmdbService;
+
+
+
+
+
+
+

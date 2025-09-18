@@ -46,7 +46,7 @@ class NotificationService {
       date: '2025-06-24',
       type: 'major',
       changes: [
-        'Added enhanced 2embed.cc extraction system',
+        'Migrated to SuperEmbed player integration',
         'Implemented 6-step stream extraction cascade',
         'Fixed genre filtering functionality',
         'Added settings dropdown for stream options',

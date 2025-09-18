@@ -58,7 +58,7 @@ describe('ContentProcessingEngine', () => {
     episodes: null,
     status: 'Released',
     isAdult: false,
-    streamUrl: 'https://www.2embed.cc/embed/tt0111161'
+    streamUrl: 'https://multiembed.mov/?video_id=tt0111161'
   };
 
   const mockTVContent: ContentItem = {
@@ -83,7 +83,7 @@ describe('ContentProcessingEngine', () => {
     episodes: 62,
     status: 'Ended',
     isAdult: false,
-    streamUrl: 'https://www.2embed.cc/embedtvfull/tt0903747'
+    streamUrl: 'https://multiembed.mov/?video_id=tt0903747'
   };
 
   beforeEach(() => {
@@ -327,12 +327,12 @@ describe('ContentProcessingEngine', () => {
       const contentWithoutImdb = { ...mockMovieContent, imdb_id: undefined };
       
       mockTmdbService.getExternalIds.mockResolvedValue({ imdb_id: 'tt0111161' });
-      mockTmdbService.getStreamingUrl.mockReturnValue('https://www.2embed.cc/embed/tt0111161');
+      mockTmdbService.getStreamingUrl.mockReturnValue('https://multiembed.mov/?video_id=tt0111161');
 
       const result = await engine.enrichContentWithMetadata(contentWithoutImdb);
 
       expect(result.imdb_id).toBe('tt0111161');
-      expect(result.streamUrl).toBe('https://www.2embed.cc/embed/tt0111161');
+      expect(result.streamUrl).toBe('https://multiembed.mov/?video_id=tt0111161');
     });
 
     it('should add quality indicators', async () => {

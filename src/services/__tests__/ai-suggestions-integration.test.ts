@@ -57,7 +57,7 @@ vi.mock('../tmdb-service', () => ({
       overview: 'Post-apocalyptic action film'
     }),
     getExternalIds: vi.fn().mockResolvedValue({ imdb_id: 'tt1392190' }),
-    getStreamingUrl: vi.fn().mockReturnValue('https://2embed.cc/embed/tt1392190')
+    getStreamingUrl: vi.fn().mockReturnValue('https://multiembed.mov/?video_id=tt1392190')
   }
 }));
 

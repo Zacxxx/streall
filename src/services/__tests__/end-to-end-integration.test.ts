@@ -95,7 +95,7 @@ vi.mock('../tmdb-service', () => ({
       });
     }),
     getExternalIds: vi.fn().mockResolvedValue({ imdb_id: 'tt1234567' }),
-    getStreamingUrl: vi.fn().mockReturnValue('https://2embed.cc/embed/tt1234567')
+    getStreamingUrl: vi.fn().mockReturnValue('https://multiembed.mov/?video_id=tt1234567')
   }
 }));
 
@@ -710,7 +710,7 @@ describe('End-to-End Integration Tests', () => {
         
         // Verify streaming URL format
         const streamingUrl = tmdbService.getStreamingUrl(content.imdb_id || `tmdb_${content.tmdb_id}`);
-        expect(streamingUrl).toMatch(/2embed\.cc/);
+        expect(streamingUrl).toMatch(/multiembed\\.mov/);
         
         // Verify details page routing
         const detailsPath = `/details/${content.type}/${content.tmdb_id}`;

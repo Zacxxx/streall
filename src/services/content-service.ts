@@ -1,5 +1,6 @@
 // Content service inspired by the PHP scripts for fetching latest movies and episodes
 import { tmdbService } from './tmdb-service';
+import { buildSuperEmbedUrl, normalizeImdbId } from './superembed-service';
 
 export interface ContentItem {
   imdb_id: string;
@@ -20,6 +21,28 @@ export class ContentService {
   private cache = new Map<string, ContentItem[]>();
   private cacheExpiry = new Map<string, number>();
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
+  private createEmbedLinks(imdbId: string | null | undefined, tmdbId: number, type: 'movie' | 'tv', season?: number, episode?: number) {
+    const normalizedImdb = imdbId ? normalizeImdbId(imdbId) : undefined;
+
+    const imdbEmbed = buildSuperEmbedUrl(type, {
+      imdbId: normalizedImdb,
+      tmdbId,
+      season,
+      episode,
+    });
+
+    const tmdbEmbed = buildSuperEmbedUrl(type, {
+      tmdbId,
+      season,
+      episode,
+    });
+
+    return {
+      imdb_embed: imdbEmbed,
+      tmdb_embed: tmdbEmbed,
+    };
+  }
 
   private isCacheValid(key: string): boolean {
     const expiry = this.cacheExpiry.get(key);
@@ -48,12 +71,14 @@ export class ContentService {
       for (const movie of movies.slice(0, 20)) {
         if (!movie.imdb_id) continue;
         
+        const { imdb_embed, tmdb_embed } = this.createEmbedLinks(movie.imdb_id, movie.id, 'movie');
+
         const contentItem: ContentItem = {
           imdb_id: movie.imdb_id,
           tmdb_id: movie.id,
           title: movie.title,
-          imdb_embed: `https://www.2embed.cc/embed/${movie.imdb_id}`,
-          tmdb_embed: `https://www.2embed.cc/embed/${movie.imdb_id}`,
+          imdb_embed,
+          tmdb_embed,
           poster: movie.poster || 'n/a',
           type: 'movie',
           year: movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : undefined,
@@ -96,14 +121,15 @@ export class ContentService {
         
         for (let season = 1; season <= maxSeasons; season++) {
           for (let episode = 1; episode <= episodesPerSeason; episode++) {
+            const { imdb_embed, tmdb_embed } = this.createEmbedLinks(show.imdb_id, show.id, 'tv', season, episode);
             const contentItem: ContentItem = {
               imdb_id: show.imdb_id,
               tmdb_id: show.id,
               title: show.title,
               season,
               episode,
-              imdb_embed: `https://www.2embed.cc/embedtv/${show.imdb_id}&s=${season}&e=${episode}`,
-              tmdb_embed: `https://www.2embed.cc/embedtv/${show.imdb_id}&s=${season}&e=${episode}`,
+              imdb_embed,
+              tmdb_embed,
               poster: show.poster || 'n/a',
               type: 'tv',
               year: show.releaseDate ? new Date(show.releaseDate).getFullYear() : undefined,
@@ -180,18 +206,18 @@ export class ContentService {
           }
         }
         
+        const mediaType = (item.type === 'tv' ? 'tv' : 'movie') as 'movie' | 'tv';
+        const sourceImdbId = item.imdb_id || `tt${item.id}`;
+        const { imdb_embed, tmdb_embed } = this.createEmbedLinks(sourceImdbId, item.id, mediaType);
+
         const contentItem: ContentItem = {
-          imdb_id: item.imdb_id || `tt${item.id}`, // Fallback
+          imdb_id: normalizeImdbId(sourceImdbId), // Fallback
           tmdb_id: item.id,
           title: item.title,
-          imdb_embed: item.type === 'tv' 
-            ? `https://www.2embed.cc/embedtvfull/${item.imdb_id}` 
-            : `https://www.2embed.cc/embed/${item.imdb_id}`,
-          tmdb_embed: item.type === 'tv' 
-            ? `https://www.2embed.cc/embedtvfull/${item.imdb_id}` 
-            : `https://www.2embed.cc/embed/${item.imdb_id}`,
+          imdb_embed,
+          tmdb_embed,
           poster: item.poster || 'n/a',
-          type: item.type as 'movie' | 'tv',
+          type: mediaType,
           year: item.releaseDate ? new Date(item.releaseDate).getFullYear() : undefined,
           rating: item.rating,
           overview: item.overview
@@ -222,16 +248,16 @@ export class ContentService {
       
       const isTV = tmdbData.type === 'tv';
       
+      const normalizedId = normalizeImdbId(cleanId);
+      const mediaType = isTV ? 'tv' : 'movie';
+      const { imdb_embed, tmdb_embed } = this.createEmbedLinks(normalizedId, tmdbData.id, mediaType);
+
       const contentItem: ContentItem = {
-        imdb_id: cleanId,
+        imdb_id: normalizedId,
         tmdb_id: tmdbData.id,
         title: tmdbData.title || 'Unknown Title',
-        imdb_embed: isTV 
-          ? `https://www.2embed.cc/embedtvfull/${cleanId}` 
-          : `https://www.2embed.cc/embed/${cleanId}`,
-        tmdb_embed: isTV 
-          ? `https://www.2embed.cc/embedtvfull/${cleanId}` 
-          : `https://www.2embed.cc/embed/${cleanId}`,
+        imdb_embed,
+        tmdb_embed,
         poster: tmdbData.poster || 'n/a',
         type: isTV ? 'tv' : 'movie',
         year: tmdbData.year || undefined,
@@ -249,8 +275,8 @@ export class ContentService {
 
   // Generate embed URL for specific episode
   generateEpisodeEmbedUrl(imdbId: string, season: number, episode: number): string {
-    const cleanId = imdbId.startsWith('tt') ? imdbId : `tt${imdbId}`;
-    return `https://www.2embed.cc/embedtv/${cleanId}&s=${season}&e=${episode}`;
+    const normalizedId = normalizeImdbId(imdbId);
+    return buildSuperEmbedUrl('tv', { imdbId: normalizedId, season, episode });
   }
 
   // Clear cache
@@ -261,3 +287,6 @@ export class ContentService {
 }
 
 export const contentService = new ContentService(); 
+
+
+

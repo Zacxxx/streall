@@ -23,13 +23,6 @@ import { ContentDetails } from '@/components/content-details'
 import { CustomVideoPlayer } from '@/components/custom-video-player'
 import { SubtitleControls } from '@/components/subtitle-overlay'
 import { subtitleService } from '@/services/subtitle-service'
-import { StreamExtractor } from '@/utils/stream-extractor'
-import { DynamicStreamCapture } from '@/utils/dynamic-stream-capture'
-import { DirectStreamUrls } from '@/utils/direct-stream-urls'
-import { RealStreamExtractor } from '@/utils/real-stream-extractor'
-import { RedirectFollower } from '@/utils/redirect-follower'
-import { StreamCapture } from '@/utils/stream-capture'
-import { StreamInjector } from '@/utils/stream-injector'
 import { ChangelogPage } from '@/components/changelog-page'
 import { AnimePage } from '@/components/anime-page'
 import { AnimeSection } from '@/components/anime-section'
@@ -244,7 +237,6 @@ function PlayerPage() {
   const [content, setContent] = useState<ContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [embedUrl, setEmbedUrl] = useState('');
-  const [isExtracting, setIsExtracting] = useState(false);
   const [hasSubtitles, setHasSubtitles] = useState(false);
   const [subtitlesVisible, setSubtitlesVisible] = useState(false);
   const [subtitleTimerRunning, setSubtitleTimerRunning] = useState(false);
@@ -317,22 +309,21 @@ function PlayerPage() {
           if (data) {
             setContent(data);
             
-            // Generate 2embed URL using our tmdbService
-            const baseUrl = 'https://www.2embed.cc';
-            let url = '';
-            
-            if (mediaType === 'movie') {
-              url = `${baseUrl}/embed/${contentId}`;
-            } else if (mediaType === 'tv') {
-              // Get season and episode from URL params
-              const urlParams = new URLSearchParams(window.location.search);
-              const season = urlParams.get('s') || '1';
-              const episode = urlParams.get('e') || '1';
-              // Fix: Use correct 2embed URL format with & separator
-              url = `${baseUrl}/embedtv/${contentId}&s=${season}&e=${episode}`;
-            }
-            
-            setEmbedUrl(url);
+            // Generate SuperEmbed URL using our streaming service
+            const urlParams = new URLSearchParams(window.location.search);
+            const seasonParam = urlParams.get('s') ?? urlParams.get('season');
+            const episodeParam = urlParams.get('e') ?? urlParams.get('episode');
+            const seasonNumber = seasonParam ? Number(seasonParam) : undefined;
+            const episodeNumber = episodeParam ? Number(episodeParam) : undefined;
+
+            const streamSource = tmdbService.getStreamingUrl(
+              data.imdb_id ?? data.id,
+              mediaType as 'movie' | 'tv',
+              seasonNumber,
+              episodeNumber
+            );
+
+            setEmbedUrl(streamSource);
           }
         }
       } catch (error) {
@@ -349,174 +340,8 @@ function PlayerPage() {
     navigate(-1);
   };
 
-  const handleExtractStreams = async () => {
-    console.log('🎬 Enhanced 2embed.cc stream extraction from:', embedUrl);
-    setIsExtracting(true);
-    
-    try {
-      // Step 1: Use our enhanced StreamExtractor for 2embed.cc
-      console.log('🎯 Step 1: Enhanced 2embed.cc extraction...');
-      const extractedStreams = await StreamExtractor.extractStreamsFromUrl(embedUrl);
-      
-      if (extractedStreams && extractedStreams.sources.length > 0) {
-        console.log(`✅ Enhanced extraction found ${extractedStreams.sources.length} stream sources`);
-        console.log('🎯 Stream sources:', extractedStreams.sources);
-        
-        // Sort sources by preference (HLS > MP4 > WebM > etc.)
-        const sortedSources = StreamExtractor.sortSourcesByPreference(extractedStreams.sources);
-        
-        // Display results to user
-        const bestSource = sortedSources[0];
-        if (bestSource) {
-          console.log('🏆 Best source selected:', bestSource);
-          
-          // Show success message with stream details
-          alert(`✅ Stream extraction successful!\n\nFound ${sortedSources.length} sources\nBest quality: ${bestSource.type.toUpperCase()} - ${bestSource.quality}\n\nCheck console for full details.`);
-        } else {
-          alert(`✅ Stream extraction successful!\n\nFound ${sortedSources.length} sources\nCheck console for full details.`);
-        }
-        
-        setIsExtracting(false);
-        return;
-      }
-
-      // Step 2: Fallback to dynamic capture
-      console.log('🔄 Step 2: Dynamic stream capture fallback...');
-      const dynamicResult = await DynamicStreamCapture.captureRealStreams(embedUrl);
-      
-      if (dynamicResult.success && dynamicResult.streams.length > 0) {
-        console.log(`✅ Dynamic capture found ${dynamicResult.streams.length} real stream URLs`);
-        console.log('🎯 Captured streams:', dynamicResult.streams);
-        
-        const sortedDynamicStreams = DynamicStreamCapture.sortStreamsByPreference(dynamicResult.streams);
-        const bestDynamic = sortedDynamicStreams[0];
-        
-        if (bestDynamic) {
-          alert(`✅ Dynamic capture successful!\n\nFound ${sortedDynamicStreams.length} streams\nBest: ${bestDynamic.type.toUpperCase()} - ${bestDynamic.quality}\n\nCheck console for details.`);
-        } else {
-          alert(`✅ Dynamic capture successful!\n\nFound ${sortedDynamicStreams.length} streams\nCheck console for details.`);
-        }
-        
-        setIsExtracting(false);
-        return;
-      }
-
-      // Step 3: Extract TMDB ID and use advanced methods
-      const tmdbIdMatch = embedUrl.match(/\/(\d+)$/);
-      if (tmdbIdMatch) {
-        const tmdbId = tmdbIdMatch[1];
-        if (!tmdbId) {
-          console.log('❌ Could not extract valid TMDB ID');
-        } else {
-          console.log('🎬 Step 3: Using TMDB ID for advanced extraction:', tmdbId);
-
-          // Try direct stream URLs from HAR analysis
-          console.log('🔄 Step 3a: Direct stream URLs from HAR analysis...');
-          const directStreams = await DirectStreamUrls.getWorkingStreams(tmdbId, 'movie');
-          
-          if (directStreams.length > 0) {
-            console.log(`✅ Found ${directStreams.length} direct stream URLs`);
-            const sortedDirectStreams = DirectStreamUrls.sortStreamsByPreference(directStreams);
-            const bestDirect = sortedDirectStreams[0];
-            
-            if (bestDirect) {
-              alert(`✅ Direct streams found!\n\nProvider: ${bestDirect.provider}\nQuality: ${bestDirect.quality}\nStreams: ${directStreams.length}\n\nCheck console for URLs.`);
-            } else {
-              alert(`✅ Direct streams found!\n\nStreams: ${directStreams.length}\n\nCheck console for URLs.`);
-            }
-            
-            setIsExtracting(false);
-            return;
-          }
-
-          // Try real stream extractor with iframe monitoring
-          console.log('🔄 Step 3b: Real streaming infrastructure...');
-          const providerResults = await RealStreamExtractor.extractFromTMDBId(tmdbId, 'movie');
-          
-          if (providerResults.length > 0) {
-            console.log(`✅ Found ${providerResults.length} streaming providers`);
-            const realSources = RealStreamExtractor.getBestSources(providerResults);
-            
-            if (realSources.length > 0) {
-              const bestReal = realSources[0];
-              if (bestReal) {
-                alert(`✅ Real streams extracted!\n\nProvider: ${bestReal.provider}\nType: ${bestReal.type.toUpperCase()}\nQuality: ${bestReal.quality}\n\nCheck console for details.`);
-              } else {
-                alert(`✅ Real streams extracted!\n\nSources: ${realSources.length}\n\nCheck console for details.`);
-              }
-              
-              setIsExtracting(false);
-              return;
-            }
-          }
-        }
-      }
-
-      // Step 4: Redirect following fallback
-      console.log('🔗 Step 4: Following redirect chain...');
-      const redirectChain = await RedirectFollower.followRedirectChain(embedUrl);
-      
-      if (redirectChain.streamingProvider !== 'unknown' && redirectChain.streamingProvider !== 'error') {
-        console.log('✅ Found streaming provider:', redirectChain.streamingProvider);
-        console.log('🔗 Redirect chain:', redirectChain);
-        
-        const potentialUrls = RedirectFollower.generateStreamingUrls(redirectChain);
-        
-        if (potentialUrls.length > 0) {
-          alert(`✅ Redirect analysis successful!\n\nProvider: ${redirectChain.streamingProvider}\nPotential URLs: ${potentialUrls.length}\n\nCheck console for details.`);
-          
-          setIsExtracting(false);
-          return;
-        }
-      }
-      
-      // Step 5: Hybrid capture method
-      console.log('🎬 Step 5: Hybrid network capture method...');
-      const capturedStreams = await StreamCapture.captureStreamsFromEmbed(embedUrl);
-      
-      if (capturedStreams.length > 0) {
-        console.log('✅ Hybrid capture found streams:', capturedStreams);
-        const sortedCaptured = StreamCapture.sortStreamsByPreference(capturedStreams);
-        const bestCaptured = sortedCaptured[0];
-        
-        if (bestCaptured) {
-          alert(`✅ Hybrid capture successful!\n\nType: ${bestCaptured.type.toUpperCase()}\nQuality: ${bestCaptured.quality}\nStreams: ${capturedStreams.length}\n\nCheck console for URLs.`);
-        } else {
-          alert(`✅ Hybrid capture successful!\n\nStreams: ${capturedStreams.length}\n\nCheck console for URLs.`);
-        }
-        
-        setIsExtracting(false);
-        return;
-      }
-      
-      // Step 6: JavaScript injection method (last resort)
-      console.log('🎬 Step 6: JavaScript injection method...');
-      const injectedStreams = await StreamInjector.extractStreamsWithInjection(embedUrl);
-      
-      if (injectedStreams.length > 0) {
-        console.log('✅ JavaScript injection found streams:', injectedStreams);
-        const bestInjected = injectedStreams[0];
-        
-        if (bestInjected) {
-          alert(`✅ Injection method successful!\n\nType: ${bestInjected.type.toUpperCase()}\nQuality: ${bestInjected.quality || 'auto'}\nStreams: ${injectedStreams.length}\n\nCheck console for URLs.`);
-        } else {
-          alert(`✅ Injection method successful!\n\nStreams: ${injectedStreams.length}\n\nCheck console for URLs.`);
-        }
-        
-        setIsExtracting(false);
-        return;
-      }
-
-      // If all methods failed
-      console.log('❌ All extraction methods failed');
-      alert('❌ Stream extraction failed\n\nNo streams could be extracted using any of the 6 available methods.\n\nThis might be due to:\n- Changed embed service structure\n- Network restrictions\n- CORS policies\n\nPlease check the console for detailed logs.');
-      
-    } catch (error) {
-      console.error('❌ Stream extraction error:', error);
-      alert(`❌ Stream extraction error\n\n${error instanceof Error ? error.message : 'Unknown error occurred'}\n\nCheck console for details.`);
-    } finally {
-      setIsExtracting(false);
-    }
+  const handleExtractStreams = () => {
+    alert('SuperEmbed uses a direct iframe player. Advanced stream extraction tools have been deprecated.');
   };
 
   // Subtitle functions
@@ -615,35 +440,11 @@ function PlayerPage() {
                           handleExtractStreams();
                           setShowSettingsDropdown(false);
                         }}
-                        disabled={isExtracting}
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start text-white hover:bg-green-700/40 hover:text-green-300 disabled:opacity-50"
+                        className="w-full justify-start text-white hover:bg-green-700/40 hover:text-green-300"
                       >
-                        {isExtracting ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Extracting...
-                          </>
-                        ) : (
-                          <>
-                            🎯 Enhanced 2embed.cc Extraction
-                          </>
-                        )}
-                      </Button>
-                      
-                      <Button
-                        onClick={() => {
-                          // This will trigger the Try Direct Stream functionality in CustomVideoPlayer
-                          const event = new CustomEvent('tryDirectStream');
-                          window.dispatchEvent(event);
-                          setShowSettingsDropdown(false);
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start text-white hover:bg-blue-700/40 hover:text-blue-300 mt-1"
-                      >
-                        🎯 Try Direct Stream
+                        SuperEmbed Integration Info
                       </Button>
                     </div>
                   </div>
@@ -845,3 +646,6 @@ function App() {
 }
 
 export default App;
+
+
+

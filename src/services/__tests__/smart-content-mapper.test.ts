@@ -146,14 +146,14 @@ describe('SmartContentMapper', () => {
 
   describe('tmdbToStreamingUrl', () => {
     beforeEach(() => {
-      mockTmdbService.getStreamingUrl.mockReturnValue('https://2embed.cc/embed/tt1234567');
+      mockTmdbService.getStreamingUrl.mockReturnValue('https://multiembed.mov/?video_id=tt1234567');
     });
 
     it('should generate streaming URL using IMDB ID by default', () => {
       const result = mapper.tmdbToStreamingUrl(mockMovieContent);
 
       expect(mockTmdbService.getStreamingUrl).toHaveBeenCalledWith('tt1234567', 'movie', undefined, undefined);
-      expect(result).toBe('https://2embed.cc/embed/tt1234567');
+      expect(result).toBe('https://multiembed.mov/?video_id=tt1234567');
     });
 
     it('should fallback to TMDB ID when IMDB ID is missing', () => {
@@ -161,14 +161,14 @@ describe('SmartContentMapper', () => {
       const result = mapper.tmdbToStreamingUrl(contentWithoutImdb);
 
       expect(mockTmdbService.getStreamingUrl).toHaveBeenCalledWith(123, 'movie', undefined, undefined);
-      expect(result).toBe('https://2embed.cc/embed/tt1234567');
+      expect(result).toBe('https://multiembed.mov/?video_id=tt1234567');
     });
 
     it('should handle TV content with season and episode', () => {
       const result = mapper.tmdbToStreamingUrl(mockTvContent, { season: 1, episode: 5 });
 
       expect(mockTmdbService.getStreamingUrl).toHaveBeenCalledWith('tt7654321', 'tv', 1, 5);
-      expect(result).toBe('https://2embed.cc/embed/tt1234567');
+      expect(result).toBe('https://multiembed.mov/?video_id=tt1234567');
     });
 
     it('should handle anime content by converting to tv type', () => {
@@ -176,14 +176,14 @@ describe('SmartContentMapper', () => {
       const result = mapper.tmdbToStreamingUrl(animeContent);
 
       expect(mockTmdbService.getStreamingUrl).toHaveBeenCalledWith('tt7654321', 'tv', undefined, undefined);
-      expect(result).toBe('https://2embed.cc/embed/tt1234567');
+      expect(result).toBe('https://multiembed.mov/?video_id=tt1234567');
     });
 
     it('should use TMDB ID when preferImdbId is false', () => {
       const result = mapper.tmdbToStreamingUrl(mockMovieContent, { preferImdbId: false });
 
       expect(mockTmdbService.getStreamingUrl).toHaveBeenCalledWith(123, 'movie', undefined, undefined);
-      expect(result).toBe('https://2embed.cc/embed/tt1234567');
+      expect(result).toBe('https://multiembed.mov/?video_id=tt1234567');
     });
   });
 
@@ -245,7 +245,7 @@ describe('SmartContentMapper', () => {
   describe('enrichWithStreamingData', () => {
     beforeEach(() => {
       mockTmdbService.getExternalIds.mockResolvedValue({ imdb_id: 'tt9999999' });
-      mockTmdbService.getStreamingUrl.mockReturnValue('https://2embed.cc/embed/tt9999999');
+      mockTmdbService.getStreamingUrl.mockReturnValue('https://multiembed.mov/?video_id=tt9999999');
     });
 
     it('should enrich content with external IDs when missing', async () => {
@@ -259,7 +259,7 @@ describe('SmartContentMapper', () => {
     it('should add streaming URLs when requested', async () => {
       const result = await mapper.enrichWithStreamingData(mockMovieContent, { includeStreamingUrls: true });
 
-      expect(result.streamUrl).toBe('https://2embed.cc/embed/tt9999999');
+      expect(result.streamUrl).toBe('https://multiembed.mov/?video_id=tt9999999');
     });
 
     it('should add season URLs for TV shows', async () => {
@@ -268,7 +268,7 @@ describe('SmartContentMapper', () => {
       expect((result as any).seasonUrls).toHaveLength(3);
       expect((result as any).seasonUrls[0]).toEqual({
         season: 1,
-        url: 'https://2embed.cc/embed/tt9999999'
+        url: 'https://multiembed.mov/?video_id=tt9999999'
       });
     });
 
@@ -329,21 +329,21 @@ describe('SmartContentMapper', () => {
 
   describe('generateStreamingUrlById', () => {
     beforeEach(() => {
-      mockTmdbService.getStreamingUrl.mockReturnValue('https://2embed.cc/embed/123');
+      mockTmdbService.getStreamingUrl.mockReturnValue('https://multiembed.mov/?video_id=123&tmdb=1');
     });
 
     it('should generate streaming URL by ID', () => {
       const result = mapper.generateStreamingUrlById(123, 'movie');
 
       expect(mockTmdbService.getStreamingUrl).toHaveBeenCalledWith(123, 'movie', undefined, undefined);
-      expect(result).toBe('https://2embed.cc/embed/123');
+      expect(result).toBe('https://multiembed.mov/?video_id=123&tmdb=1');
     });
 
     it('should handle TV content with season and episode', () => {
       const result = mapper.generateStreamingUrlById('tt1234567', 'tv', { season: 2, episode: 10 });
 
       expect(mockTmdbService.getStreamingUrl).toHaveBeenCalledWith('tt1234567', 'tv', 2, 10);
-      expect(result).toBe('https://2embed.cc/embed/123');
+      expect(result).toBe('https://multiembed.mov/?video_id=123&tmdb=1');
     });
   });
 

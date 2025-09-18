@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { buildSuperEmbedUrl, normalizeImdbId } from "@/services/superembed-service"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -14,26 +15,27 @@ export function capitalizeWords(str: string): string {
 }
 
 export function generateEmbedUrl(
-  imdbId: string, 
-  contentType: string, 
-  season?: number, 
+  imdbId: string,
+  contentType: string,
+  season?: number,
   episode?: number
 ): string {
-  const cleanId = imdbId.replace('tt', '')
-  
-  switch (contentType.toLowerCase()) {
-    case 'movie':
-      return `https://www.2embed.cc/embed/tt${cleanId}`
-    case 'tvseries':
-    case 'tvSeries':
-      if (season && episode) {
-        return `https://www.2embed.cc/embedtv/tt${cleanId}&s=${season}&e=${episode}`
-      }
-      return `https://www.2embed.cc/embedtvfull/tt${cleanId}`
-    case 'tvmovie':
-    case 'tvMovie':
-      return `https://www.2embed.cc/embed/tt${cleanId}`
-    default:
-      return `https://www.2embed.cc/embed/tt${cleanId}`
+  const normalizedId = normalizeImdbId(imdbId);
+  const type = contentType.toLowerCase();
+  const isTv = type.includes('tv');
+
+  const options: { imdbId: string; season?: number; episode?: number } = { imdbId: normalizedId };
+
+  if (isTv) {
+    if (season) {
+      options.season = season;
+    }
+    if (episode) {
+      options.episode = episode;
+    }
+
+    return buildSuperEmbedUrl('tv', options);
   }
-} 
+
+  return buildSuperEmbedUrl('movie', options);
+}
