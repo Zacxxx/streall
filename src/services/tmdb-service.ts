@@ -83,6 +83,7 @@ export interface EpisodeDetails {
   stillPath: string | null;
   voteAverage: number;
   streamUrl: string;
+  runtime?: number | null;
 }
 
 class TMDBService {
@@ -544,7 +545,8 @@ class TMDBService {
         airDate: episode.air_date,
         stillPath: episode.still_path ? `${TMDB_IMAGE_BASE_URL}w500${episode.still_path}` : null,
         voteAverage: episode.vote_average,
-        streamUrl: this.generateSuperEmbedUrl(tvId, 'tv', seasonNumber, episode.episode_number)
+        streamUrl: this.generateSuperEmbedUrl(tvId, 'tv', seasonNumber, episode.episode_number),
+        runtime: episode.runtime ?? null
       }));
       
       return {

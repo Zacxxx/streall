@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { NetflixHero } from '@/components/netflix-hero'
@@ -14,12 +14,12 @@ import { WelcomeModal } from '@/components/welcome-modal'
 import { SettingsPage } from '@/components/settings-page'
 import { AuthPage } from '@/pages/auth-page'
 import { ProfilePage } from '@/pages/profile-page'
-import { tmdbService, type ContentItem } from '@/services/tmdb-service'
+import { tmdbService, type ContentItem, type EpisodeDetails } from '@/services/tmdb-service'
 import { authService } from '@/services/auth-service'
 import { watchlistService } from '@/services/watchlist-service'
 import { settingsService } from '@/services/settings-service'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Settings, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Settings, ChevronDown, PlayCircle } from 'lucide-react'
 import { ContentDetails } from '@/components/content-details'
 import { CustomVideoPlayer } from '@/components/custom-video-player'
 import { SubtitleControls } from '@/components/subtitle-overlay'
@@ -28,6 +28,11 @@ import { ChangelogPage } from '@/components/changelog-page'
 import { AnimePage } from '@/components/anime-page'
 import { AnimeSection } from '@/components/anime-section'
 import { MovieSuggestions } from '@/components/movie-suggestions'
+
+type ExtendedContentItem = ContentItem & {
+  similar?: ContentItem[];
+  seasonUrls?: { season: number; url: string }[] | null;
+};
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -190,7 +195,7 @@ function PlayerPage() {
   }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [content, setContent] = useState<ContentItem | null>(null);
+  const [content, setContent] = useState<ExtendedContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [embedUrl, setEmbedUrl] = useState('');
   const [hasSubtitles, setHasSubtitles] = useState(false);
@@ -200,7 +205,14 @@ function PlayerPage() {
   const [uploadedSubtitle, setUploadedSubtitle] = useState<{ url: string; label: string } | null>(null);
   const [streamContext, setStreamContext] = useState<{ id: number | string; type: 'movie' | 'tv'; season?: number; episode?: number } | null>(null);
   const [useVipStream, setUseVipStream] = useState(false);
-  
+  const [autoplayEnabled, setAutoplayEnabled] = useState(
+    () => authService.getCurrentUser()?.preferences.autoplay ?? true
+  );
+  const seasonEpisodesRef = useRef<Record<number, EpisodeDetails[]>>({});
+  const [seasonEpisodesVersion, setSeasonEpisodesVersion] = useState(0);
+  const autoplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoplayTriggerRef = useRef<{ key: string; triggered: boolean }>({ key: '', triggered: false });
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -215,6 +227,14 @@ function PlayerPage() {
   }, [showSettingsDropdown]);
 
   useEffect(() => {
+    const unsubscribe = authService.addListener((state) => {
+      setAutoplayEnabled(state.user?.preferences.autoplay ?? true);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     const loadContent = async () => {
       try {
         setIsLoading(true);
@@ -227,15 +247,22 @@ function PlayerPage() {
         setSubtitleTimerRunning(false);
         subtitleService.setTrack(null);
         subtitleService.stop();
+        seasonEpisodesRef.current = {};
+        setSeasonEpisodesVersion(0);
+        autoplayTriggerRef.current = { key: '', triggered: false };
+        if (autoplayTimeoutRef.current) {
+          clearTimeout(autoplayTimeoutRef.current);
+          autoplayTimeoutRef.current = null;
+        }
 
         // Handle anime content
         if (mediaType === 'anime' && animeSlug) {
           const animeData = location.state?.anime;
           const animeEmbedUrl = location.state?.embedUrl;
-          
+
           if (animeData && animeEmbedUrl) {
             // Convert anime data to ContentItem format
-            const animeContent: ContentItem = {
+            const animeContent: ExtendedContentItem = {
               id: animeData.id,
               tmdb_id: animeData.id,
               title: animeData.title,
@@ -253,42 +280,48 @@ function PlayerPage() {
               genreIds: [],
               episodes: animeData.episodes,
               isAdult: false,
+              similar: [],
+              seasonUrls: null,
             };
-            
+
             setContent(animeContent);
             setEmbedUrl(animeEmbedUrl);
           } else {
             // Fallback: try to get anime details from service
             const { animeService } = await import('@/services/anime-service');
             const animeDetails = await animeService.getAnimeDetails(animeSlug);
-            
+
             if (animeDetails) {
-              const animeContent: ContentItem = animeService.convertToContentItem(animeDetails);
+              const animeContent = animeService.convertToContentItem(animeDetails) as ExtendedContentItem;
+              animeContent.similar = [];
+              animeContent.seasonUrls = null;
               setContent(animeContent);
               setEmbedUrl(animeDetails.streamUrl);
             } else {
               console.error('Anime not found:', animeSlug);
             }
           }
-        } 
+        }
         // Handle regular movie/TV content
         else if (contentId && mediaType && mediaType !== 'anime') {
-          const data = await tmdbService.getDetails(parseInt(contentId), mediaType as 'movie' | 'tv');
+          const data = await tmdbService.getDetails(parseInt(contentId), mediaType as 'movie' | 'tv') as ExtendedContentItem | null;
           if (data) {
             setContent(data);
-            
+
             // Generate SuperEmbed URL using our streaming service
             const urlParams = new URLSearchParams(window.location.search);
             const seasonParam = urlParams.get('s') ?? urlParams.get('season');
             const episodeParam = urlParams.get('e') ?? urlParams.get('episode');
             const seasonNumber = seasonParam ? Number(seasonParam) : undefined;
             const episodeNumber = episodeParam ? Number(episodeParam) : undefined;
+            const resolvedSeason = seasonNumber ?? (data.type === 'tv' ? 1 : undefined);
+            const resolvedEpisode = episodeNumber ?? (data.type === 'tv' ? 1 : undefined);
 
             setStreamContext({
               id: data.imdb_id ?? data.id,
               type: mediaType as 'movie' | 'tv',
-              season: seasonNumber,
-              episode: episodeNumber
+              season: resolvedSeason,
+              episode: resolvedEpisode
             });
           }
         }
@@ -386,6 +419,301 @@ function PlayerPage() {
   const handleStopSubtitleTimer = () => {
     subtitleService.stop();
     setSubtitleTimerRunning(false);
+  };
+
+  const storeSeasonEpisodes = useCallback((season: number, episodes: EpisodeDetails[]) => {
+    seasonEpisodesRef.current = { ...seasonEpisodesRef.current, [season]: episodes };
+    setSeasonEpisodesVersion((version) => version + 1);
+  }, []);
+
+  const getSeasonEpisodes = useCallback(async (season: number) => {
+    if (!content || content.type !== 'tv') {
+      return [];
+    }
+
+    const cached = seasonEpisodesRef.current[season];
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const details = await tmdbService.getSeasonDetails(content.tmdb_id, season);
+      if (details?.episodes?.length) {
+        storeSeasonEpisodes(season, details.episodes);
+        return details.episodes;
+      }
+    } catch (error) {
+      console.error('[autoplay] Failed to load season details:', error);
+    }
+
+    return [];
+  }, [content, storeSeasonEpisodes]);
+
+  const similarMovies = useMemo(() => {
+    if (!content) {
+      return [] as ContentItem[];
+    }
+
+    return (content.similar ?? []).filter(
+      (item) => item.type === 'movie' && item.tmdb_id !== content.tmdb_id
+    );
+  }, [content]);
+
+  const similarTvShows = useMemo(() => {
+    if (!content) {
+      return [] as ContentItem[];
+    }
+
+    return (content.similar ?? []).filter(
+      (item) => item.type === 'tv' && item.tmdb_id !== content.tmdb_id
+    );
+  }, [content]);
+
+  const getRecommendedMovie = useCallback(async () => {
+    if (!content) {
+      return null;
+    }
+
+    if (similarMovies.length > 0) {
+      return similarMovies[0];
+    }
+
+    try {
+      const popular = await tmdbService.getPopular('movie', 1, 10);
+      return popular.results.find((item) => item.tmdb_id !== content.tmdb_id) ?? null;
+    } catch (error) {
+      console.error('[autoplay] Failed to load fallback movie recommendation:', error);
+      return null;
+    }
+  }, [content, similarMovies]);
+
+  const getRecommendedTvShow = useCallback(async () => {
+    if (!content) {
+      return null;
+    }
+
+    if (similarTvShows.length > 0) {
+      return similarTvShows[0];
+    }
+
+    try {
+      const popular = await tmdbService.getPopular('tv', 1, 10);
+      return popular.results.find((item) => item.tmdb_id !== content.tmdb_id) ?? null;
+    } catch (error) {
+      console.error('[autoplay] Failed to load fallback TV recommendation:', error);
+      return null;
+    }
+  }, [content, similarTvShows]);
+
+  const updateEpisodeContext = useCallback((seasonNumber: number, episodeNumber: number) => {
+    if (!content) {
+      return;
+    }
+
+    const streamId = streamContext?.id ?? content.imdb_id ?? content.id;
+    setStreamContext({
+      id: streamId,
+      type: 'tv',
+      season: seasonNumber,
+      episode: episodeNumber,
+    });
+
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('s', String(seasonNumber));
+    searchParams.set('e', String(episodeNumber));
+    navigate(`/watch/${content.type}/${content.tmdb_id}?${searchParams.toString()}`, { replace: true });
+  }, [content, navigate, streamContext]);
+
+  const handleAutoplayAdvance = useCallback(async () => {
+    if (!autoplayEnabled || !content) {
+      return;
+    }
+
+    if (content.type === 'movie') {
+      const nextMovie = await getRecommendedMovie();
+      if (nextMovie) {
+        navigate(`/watch/${nextMovie.type}/${nextMovie.tmdb_id}`, { replace: false, state: { autoplay: true } });
+      } else {
+        console.warn('[autoplay] No recommended movie available.');
+      }
+      return;
+    }
+
+    const currentSeason = streamContext?.season ?? 1;
+    const currentEpisode = streamContext?.episode ?? 1;
+
+    const episodes = await getSeasonEpisodes(currentSeason);
+    if (episodes.length > 0) {
+      const sortedEpisodes = [...episodes].sort((a, b) => a.episodeNumber - b.episodeNumber);
+      const currentIndex = sortedEpisodes.findIndex((episode) => episode.episodeNumber === currentEpisode);
+      if (currentIndex > -1 && currentIndex < sortedEpisodes.length - 1) {
+        const nextEpisode = sortedEpisodes[currentIndex + 1];
+        updateEpisodeContext(nextEpisode.seasonNumber ?? currentSeason, nextEpisode.episodeNumber);
+        return;
+      }
+    }
+
+    const totalSeasons = content.seasons ?? 0;
+    if (totalSeasons && currentSeason < totalSeasons) {
+      const nextSeasonNumber = currentSeason + 1;
+      const nextSeasonEpisodes = await getSeasonEpisodes(nextSeasonNumber);
+      if (nextSeasonEpisodes.length > 0) {
+        const firstEpisode = [...nextSeasonEpisodes].sort((a, b) => a.episodeNumber - b.episodeNumber)[0];
+        if (firstEpisode) {
+          updateEpisodeContext(firstEpisode.seasonNumber ?? nextSeasonNumber, firstEpisode.episodeNumber);
+          return;
+        }
+      }
+    }
+
+    const nextShow = await getRecommendedTvShow();
+    if (nextShow) {
+      navigate(`/watch/${nextShow.type}/${nextShow.tmdb_id}`, { replace: false, state: { autoplay: true } });
+    } else {
+      console.warn('[autoplay] No recommended TV show available.');
+    }
+  }, [autoplayEnabled, content, getRecommendedMovie, getRecommendedTvShow, getSeasonEpisodes, navigate, streamContext, updateEpisodeContext]);
+
+  const triggerAutoplayAdvance = useCallback(() => {
+    if (!autoplayEnabled || !content || !embedUrl) {
+      return;
+    }
+
+    if (autoplayTriggerRef.current.key !== embedUrl) {
+      autoplayTriggerRef.current = { key: embedUrl, triggered: false };
+    }
+
+    if (autoplayTriggerRef.current.triggered) {
+      return;
+    }
+
+    autoplayTriggerRef.current.triggered = true;
+
+    if (autoplayTimeoutRef.current) {
+      clearTimeout(autoplayTimeoutRef.current);
+      autoplayTimeoutRef.current = null;
+    }
+
+    void handleAutoplayAdvance();
+  }, [autoplayEnabled, content, embedUrl, handleAutoplayAdvance]);
+
+  useEffect(() => {
+    if (!content || content.type !== 'tv') {
+      return;
+    }
+
+    const seasonToLoad = streamContext?.season ?? 1;
+    void getSeasonEpisodes(seasonToLoad);
+
+    if (content.seasons && seasonToLoad < content.seasons) {
+      void getSeasonEpisodes(seasonToLoad + 1);
+    }
+  }, [content, getSeasonEpisodes, streamContext?.season]);
+
+  useEffect(() => {
+    if (!embedUrl) {
+      return;
+    }
+
+    autoplayTriggerRef.current = { key: embedUrl, triggered: false };
+
+    return () => {
+      autoplayTriggerRef.current = { key: '', triggered: false };
+    };
+  }, [embedUrl]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!autoplayEnabled) {
+        return;
+      }
+
+      const candidates: string[] = [];
+      if (typeof event.data === 'string') {
+        candidates.push(event.data);
+      } else if (typeof event.data === 'object' && event.data !== null) {
+        ['event', 'type', 'action', 'state', 'status'].forEach((key) => {
+          const value = (event.data as Record<string, unknown>)[key];
+          if (typeof value === 'string') {
+            candidates.push(value);
+          }
+        });
+      }
+
+      if (
+        candidates.some((value) => {
+          const normalized = value.toLowerCase();
+          return normalized.includes('ended') || normalized.includes('finished') || normalized.includes('complete');
+        })
+      ) {
+        triggerAutoplayAdvance();
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [autoplayEnabled, triggerAutoplayAdvance]);
+
+  useEffect(() => {
+    if (autoplayTimeoutRef.current) {
+      clearTimeout(autoplayTimeoutRef.current);
+      autoplayTimeoutRef.current = null;
+    }
+
+    if (!autoplayEnabled || !content || !embedUrl) {
+      return;
+    }
+
+    let runtimeMinutes: number | null = null;
+
+    if (content.type === 'movie') {
+      runtimeMinutes = content.runtime ?? null;
+    } else {
+      const currentSeason = streamContext?.season ?? 1;
+      const currentEpisode = streamContext?.episode ?? 1;
+      const currentEpisodes = seasonEpisodesRef.current[currentSeason];
+      const currentEpisodeDetails = currentEpisodes?.find((episode) => episode.episodeNumber === currentEpisode);
+      runtimeMinutes = currentEpisodeDetails?.runtime ?? content.runtime ?? null;
+    }
+
+    if (!runtimeMinutes || runtimeMinutes <= 0) {
+      runtimeMinutes = content.type === 'movie' ? 120 : 45;
+    }
+
+    const bufferMs = 30 * 1000;
+    const timeoutMs = runtimeMinutes * 60 * 1000 + bufferMs;
+
+    autoplayTimeoutRef.current = setTimeout(() => {
+      triggerAutoplayAdvance();
+    }, timeoutMs);
+
+    return () => {
+      if (autoplayTimeoutRef.current) {
+        clearTimeout(autoplayTimeoutRef.current);
+        autoplayTimeoutRef.current = null;
+      }
+    };
+  }, [autoplayEnabled, content, embedUrl, seasonEpisodesVersion, streamContext, triggerAutoplayAdvance]);
+
+  useEffect(() => {
+    return () => {
+      if (autoplayTimeoutRef.current) {
+        clearTimeout(autoplayTimeoutRef.current);
+        autoplayTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleToggleAutoplay = async () => {
+    const nextValue = !autoplayEnabled;
+    setAutoplayEnabled(nextValue);
+
+    try {
+      await authService.updatePreferences({ autoplay: nextValue });
+    } catch (error) {
+      console.error('[autoplay] Failed to update autoplay preference:', error);
+      setAutoplayEnabled(!nextValue);
+    }
   };
 
   const streamQualityLabel = useVipStream ? 'VIP Stream' : 'Standard Stream';
@@ -507,6 +835,19 @@ function PlayerPage() {
                 isTimerRunning={subtitleTimerRunning}
                 activeSubtitleLabel={uploadedSubtitle?.label}
               />
+
+              <Button
+                onClick={handleToggleAutoplay}
+                variant="outline"
+                size="sm"
+                aria-pressed={autoplayEnabled}
+                className={`flex items-center gap-2 text-white border-slate-400 bg-slate-900/30 hover:bg-slate-700/40 hover:border-slate-300 ${
+                  autoplayEnabled ? 'border-emerald-400/60 bg-emerald-600/20 hover:bg-emerald-600/30' : ''
+                }`}
+              >
+                <PlayCircle className="w-4 h-4" />
+                Autoplay {autoplayEnabled ? 'On' : 'Off'}
+              </Button>
             </div>
 
             <div className="text-right">
