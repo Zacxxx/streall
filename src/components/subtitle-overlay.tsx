@@ -80,6 +80,7 @@ interface SubtitleControlsProps {
   hasSubtitles: boolean;
   isVisible: boolean;
   isTimerRunning: boolean;
+  activeSubtitleLabel?: string;
 }
 
 export function SubtitleControls({
@@ -89,7 +90,8 @@ export function SubtitleControls({
   onStopTimer,
   hasSubtitles,
   isVisible,
-  isTimerRunning
+  isTimerRunning,
+  activeSubtitleLabel
 }: SubtitleControlsProps) {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -123,6 +125,10 @@ export function SubtitleControls({
           <span>Upload Subtitles</span>
         </button>
       </div>
+
+      {activeSubtitleLabel && (
+        <span className="text-xs text-slate-300">Loaded: {activeSubtitleLabel}</span>
+      )}
 
       {/* Toggle Visibility */}
       {hasSubtitles && (

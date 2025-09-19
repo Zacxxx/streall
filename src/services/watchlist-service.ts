@@ -1,4 +1,6 @@
-﻿export interface WatchlistItem {
+﻿export const WATCHLIST_STORAGE_KEY_PREFIX = 'streall_watchlist';
+
+export interface WatchlistItem {
   id: string;
   imdb_id: string;
   title: string;
@@ -11,16 +13,26 @@
 }
 
 class WatchlistService {
-  private readonly STORAGE_KEY = 'streall_watchlist';
+  private storageKey = WATCHLIST_STORAGE_KEY_PREFIX;
   private watchlist: WatchlistItem[] = [];
 
   constructor() {
     this.loadFromStorage();
   }
 
+  setUserContext(userId: string | null) {
+    const nextKey = userId ? `${WATCHLIST_STORAGE_KEY_PREFIX}_${userId}` : WATCHLIST_STORAGE_KEY_PREFIX;
+    if (nextKey === this.storageKey) {
+      return;
+    }
+    this.storageKey = nextKey;
+    this.loadFromStorage();
+  }
+
+
   private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
+      const stored = localStorage.getItem(this.storageKey);
       if (stored) {
         this.watchlist = JSON.parse(stored);
       }
@@ -32,7 +44,7 @@ class WatchlistService {
 
   private saveToStorage(): void {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.watchlist));
+      localStorage.setItem(this.storageKey, JSON.stringify(this.watchlist));
     } catch (error) {
       console.error('Error saving watchlist to storage:', error);
     }

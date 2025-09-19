@@ -161,7 +161,7 @@ export function Footer({
                       {userProfile.name}
                     </p>
                     <p className="text-slate-400 text-xs truncate">
-                      Local Profile
+                      {userProfile.email || 'Authenticated User'}
                     </p>
                   </div>
                 </div>
@@ -192,7 +192,7 @@ export function Footer({
             ) : (
               <div className="space-y-4">
                 <p className="text-slate-400 text-sm">
-                  Create a local profile to save your watchlist and preferences.
+                  Sign in to sync your watchlist and preferences securely.
                 </p>
                 
                 <div className="space-y-2">
@@ -201,13 +201,13 @@ export function Footer({
                     className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium"
                   >
                     <User className="w-4 h-4 mr-2" />
-                    Create Profile
+                    Sign In / Register
                   </Button>
                 </div>
 
                 <div className="text-xs text-slate-500">
-                  <p>✨ No registration required</p>
-                  <p>🔒 All data stored locally</p>
+                  <p>✨ Powered by Supabase Authentication</p>
+                  <p>🔒 Secure cloud-backed session storage</p>
                 </div>
               </div>
             )}

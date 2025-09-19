@@ -5,7 +5,8 @@ A modern **frontend-only** streaming platform powered by **TMDB API** with **Sup
 ## ✨ Features
 
 - 🎥 **Direct TMDB Integration**: Real-time access to millions of movies and TV shows
-- 📺 **SuperEmbed Streaming**: Simple iframe integration via multiembed.mov
+- 📺 **SuperEmbed Streaming**: Simple iframe integration via multiembed.mov with custom subtitle uploads
+- ?? **Supabase Authentication**: Secure email/password sign-in with session persistence
 - 🔍 **Advanced Search**: Fast, comprehensive search across all content
 - 🎭 **Genre Discovery**: Browse content by categories and filters
 - 📱 **Responsive Design**: Works perfectly on all devices
@@ -59,7 +60,17 @@ A modern **frontend-only** streaming platform powered by **TMDB API** with **Sup
 - **Hosting**: Any static host (Vercel, Netlify, etc.)
 - **No Backend**: Pure client-side application
 
-### SuperEmbed Streaming URLs\n\nThe platform automatically generates streaming URLs using SuperEmbed (multiembed.mov):\n\n- **Movies**: \https://multiembed.mov/?video_id={imdb_id}\\n- **TV Episodes**: \https://multiembed.mov/?video_id={imdb_id}&s={season}&e={episode}\\n- **TMDB fallback**: add \&tmdb=1\ when only a TMDB id is available\n- **VIP mode**: append \useVip=true\ in code to request \directstream.php\ URLs\n\n## 🎯 Key Services
+### SuperEmbed Streaming URLs
+
+The platform automatically generates streaming URLs using SuperEmbed (multiembed.mov):
+
+- **Movies**: `https://multiembed.mov/?video_id={imdb_id}`
+- **TV Episodes**: `https://multiembed.mov/?video_id={imdb_id}&s={season}&e={episode}`
+- **TMDB fallback**: add `&tmdb=1` when only a TMDB id is available
+- **VIP mode**: append `useVip=true` in code to request `directstream.php` URLs
+- **Custom subtitles**: append `&sub_url=...&sub_label=...` (the Upload Subtitles button generates secure data URLs automatically)
+
+## 🎯 Key Services
 
 ### TMDB Service (`src/services/tmdb-service.ts`)
 Direct TMDB API integration with:
@@ -107,6 +118,8 @@ Future backend-like functionality can be organized here:
 ```env
 # Required
 VITE_TMDB_API_KEY=your_tmdb_api_key
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Optional
 NODE_ENV=development
@@ -256,3 +269,7 @@ MIT License - see LICENSE file for details
 - [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone)
 - [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy)
 
+
+## Authentication
+
+Streall now relies on Supabase Authentication for sign-in/sign-up flows. Configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in your environment (see `env.example`) and use the `/auth` page to access the platform. Authenticated sessions unlock access to the home experience, watchlist, VIP streaming controls, and the revamped `/profile` page.

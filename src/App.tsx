@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { NetflixHero } from '@/components/netflix-hero'
 import { ContentRows } from '@/components/content-rows'
@@ -11,14 +12,14 @@ import { WatchlistView } from '@/components/watchlist-view'
 import { NetflixScrollToTop } from '@/components/netflix-enhancement'
 import { WelcomeModal } from '@/components/welcome-modal'
 import { SettingsPage } from '@/components/settings-page'
-import { ProfilePage } from '@/components/profile-page'
+import { AuthPage } from '@/pages/auth-page'
+import { ProfilePage } from '@/pages/profile-page'
 import { tmdbService, type ContentItem } from '@/services/tmdb-service'
 import { authService } from '@/services/auth-service'
+import { watchlistService } from '@/services/watchlist-service'
 import { settingsService } from '@/services/settings-service'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { ArrowLeft, User, Settings, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Settings, ChevronDown } from 'lucide-react'
 import { ContentDetails } from '@/components/content-details'
 import { CustomVideoPlayer } from '@/components/custom-video-player'
 import { SubtitleControls } from '@/components/subtitle-overlay'
@@ -28,81 +29,105 @@ import { AnimePage } from '@/components/anime-page'
 import { AnimeSection } from '@/components/anime-section'
 import { MovieSuggestions } from '@/components/movie-suggestions'
 
+function RequireAuth({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const [authState, setAuthState] = useState(authService.getCurrentAuthState());
+  const [initialising, setInitialising] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = authService.addListener((state) => {
+      setAuthState(state);
+      watchlistService.setUserContext(state.user?.id ?? null);
+      setInitialising(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (initialising) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <p className="text-sm text-slate-300">Checking your session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authState.isAuthenticated) {
+    return <Navigate to="/auth" replace state={{ redirectTo: `${location.pathname}${location.search}${location.hash}` }} />;
+  }
+
+  return <>{children}</>;
+}
+
 // Layout wrapper for consistent header/footer
 function Layout({ children, showNavbar = true, showFooter = true }: { 
-  children: React.ReactNode, 
+  children: ReactNode, 
   showNavbar?: boolean, 
   showFooter?: boolean 
 }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [showSettings, setShowSettings] = useState(false)
-  const [showProfile, setShowProfile] = useState(false)
-  const [showCreateProfile, setShowCreateProfile] = useState(false)
   const [authState, setAuthState] = useState(authService.getCurrentAuthState())
 
-  // Profile creation form
-  const [profileForm, setProfileForm] = useState({
-    name: '',
-    email: ''
-  })
+  useEffect(() => {
+    const unsubscribe = authService.addListener((state) => {
+      setAuthState(state)
+      watchlistService.setUserContext(state.user?.id ?? null)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   useEffect(() => {
-    // Listen for auth state changes
-    const checkAuthState = () => {
-      setAuthState(authService.getCurrentAuthState())
-    }
-    
-    // Check auth state periodically (simple solution)
-    const interval = setInterval(checkAuthState, 1000)
-    return () => clearInterval(interval)
+    const handleOpenSettingsEvent = () => setShowSettings(true)
+    window.addEventListener('streall-open-settings', handleOpenSettingsEvent as EventListener)
+    return () => window.removeEventListener('streall-open-settings', handleOpenSettingsEvent as EventListener)
   }, [])
 
   const handleHome = () => {
     navigate('/')
   }
 
+  const buildRedirectTarget = () => `${location.pathname}${location.search}${location.hash}`;
+
+  const redirectToAuth = () => {
+    navigate('/auth', { state: { redirectTo: buildRedirectTarget() } });
+  };
+
+  const ensureAuthenticated = () => {
+    if (!authState.isAuthenticated) {
+      redirectToAuth();
+      return false;
+    }
+    return true;
+  };
+
   const handleSettings = () => {
-    setShowSettings(true)
-  }
+    if (!ensureAuthenticated()) return;
+    setShowSettings(true);
+  };
 
   const handleProfile = () => {
-    if (authState.isAuthenticated) {
-      setShowProfile(true)
-    } else {
-      setShowCreateProfile(true)
-    }
-  }
+    if (!ensureAuthenticated()) return;
+    navigate('/profile');
+  };
 
   const handleLogin = () => {
-    if (authState.user && !authState.isAuthenticated) {
-      // User exists but not logged in
-      authService.login()
-      setAuthState(authService.getCurrentAuthState())
-    } else {
-      // No user profile exists
-      setShowCreateProfile(true)
+    redirectToAuth();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.signOut();
+      navigate('/auth', { replace: true });
+    } catch (error) {
+      console.error('Error during sign out:', error);
     }
-  }
-
-  const handleLogout = () => {
-    authService.logout()
-    setAuthState(authService.getCurrentAuthState())
-  }
-
-  const handleCreateProfile = () => {
-    if (!profileForm.name.trim()) return
-
-    const user = authService.createProfile(
-      profileForm.name,
-      profileForm.email || undefined
-    )
-
-    if (user) {
-      setAuthState(authService.getCurrentAuthState())
-      setShowCreateProfile(false)
-      setProfileForm({ name: '', email: '' })
-    }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -152,75 +177,6 @@ function Layout({ children, showNavbar = true, showFooter = true }: {
       />
 
       {/* Profile Page */}
-      <ProfilePage
-        isOpen={showProfile}
-        onClose={() => setShowProfile(false)}
-      />
-
-      {/* Create Profile Modal */}
-      <Dialog open={showCreateProfile} onOpenChange={setShowCreateProfile}>
-        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Create Your Profile
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-gray-400">
-              Create a local profile to save your watchlist and preferences. No registration required!
-            </p>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-gray-400 mb-1 block">Name *</label>
-                <Input
-                  value={profileForm.name}
-                  onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="bg-gray-800 border-gray-600 text-white"
-                  placeholder="Enter your name"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm text-gray-400 mb-1 block">Email (Optional)</label>
-                <Input
-                  value={profileForm.email}
-                  onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="bg-gray-800 border-gray-600 text-white"
-                  placeholder="Enter your email"
-                  type="email"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={handleCreateProfile}
-                disabled={!profileForm.name.trim()}
-                className="bg-red-600 hover:bg-red-700 text-white flex-1"
-              >
-                Create Profile
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowCreateProfile(false)
-                  setProfileForm({ name: '', email: '' })
-                }}
-                variant="outline"
-                className="border-gray-600 text-gray-300 hover:bg-gray-800"
-              >
-                Cancel
-              </Button>
-            </div>
-
-            <div className="text-xs text-gray-500 text-center">
-              <p>✨ No registration required</p>
-              <p>🔒 All data stored locally on your device</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
@@ -241,6 +197,9 @@ function PlayerPage() {
   const [subtitlesVisible, setSubtitlesVisible] = useState(false);
   const [subtitleTimerRunning, setSubtitleTimerRunning] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  const [uploadedSubtitle, setUploadedSubtitle] = useState<{ url: string; label: string } | null>(null);
+  const [streamContext, setStreamContext] = useState<{ id: number | string; type: 'movie' | 'tv'; season?: number; episode?: number } | null>(null);
+  const [useVipStream, setUseVipStream] = useState(false);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -259,7 +218,16 @@ function PlayerPage() {
     const loadContent = async () => {
       try {
         setIsLoading(true);
-        
+
+        setStreamContext(null);
+        setUseVipStream(false);
+        setUploadedSubtitle(null);
+        setHasSubtitles(false);
+        setSubtitlesVisible(false);
+        setSubtitleTimerRunning(false);
+        subtitleService.setTrack(null);
+        subtitleService.stop();
+
         // Handle anime content
         if (mediaType === 'anime' && animeSlug) {
           const animeData = location.state?.anime;
@@ -316,14 +284,12 @@ function PlayerPage() {
             const seasonNumber = seasonParam ? Number(seasonParam) : undefined;
             const episodeNumber = episodeParam ? Number(episodeParam) : undefined;
 
-            const streamSource = tmdbService.getStreamingUrl(
-              data.imdb_id ?? data.id,
-              mediaType as 'movie' | 'tv',
-              seasonNumber,
-              episodeNumber
-            );
-
-            setEmbedUrl(streamSource);
+            setStreamContext({
+              id: data.imdb_id ?? data.id,
+              type: mediaType as 'movie' | 'tv',
+              season: seasonNumber,
+              episode: episodeNumber
+            });
           }
         }
       } catch (error) {
@@ -336,6 +302,27 @@ function PlayerPage() {
     loadContent();
   }, [contentId, mediaType, animeSlug, location.state]);
 
+  useEffect(() => {
+    if (!streamContext) {
+      return;
+    }
+
+    const { id, type, season, episode } = streamContext;
+    const extras: { useVip?: true; subtitle?: { url: string; label: string } } = {};
+
+    if (uploadedSubtitle) {
+      extras.subtitle = uploadedSubtitle;
+    }
+
+    if (useVipStream) {
+      extras.useVip = true;
+    }
+
+    const extrasArg = extras.subtitle || extras.useVip ? extras : undefined;
+    const updatedUrl = tmdbService.getStreamingUrl(id, type, season, episode, extrasArg);
+    setEmbedUrl(updatedUrl);
+  }, [streamContext, uploadedSubtitle, useVipStream]);
+
   const handleBack = () => {
     navigate(-1);
   };
@@ -344,21 +331,49 @@ function PlayerPage() {
     alert('SuperEmbed uses a direct iframe player. Advanced stream extraction tools have been deprecated.');
   };
 
+  const handleSelectStreamMode = (nextUseVip: boolean) => {
+    setUseVipStream((prev) => {
+      if (prev === nextUseVip) {
+        return prev;
+      }
+      return nextUseVip;
+    });
+    setShowSettingsDropdown(false);
+  };
+
   // Subtitle functions
   const handleUploadSubtitles = async (file: File) => {
     try {
-      console.log('📄 Uploading subtitle file:', file.name);
-      const track = await subtitleService.loadSubtitleFile(file);
+      console.log('[subtitles] Uploading file:', file.name);
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const mime = extension === 'vtt' ? 'text/vtt' : 'application/x-subrip';
+      const fileContent = await file.text();
+      const encoder = new TextEncoder();
+      const utf8Bytes = encoder.encode(fileContent);
+      let binary = '';
+      utf8Bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+      });
+      const base64Content = btoa(binary);
+      const dataUrl = `data:${mime};base64,${base64Content}`;
+
+      const normalizedFile = new File([fileContent], file.name, { type: mime });
+      const track = await subtitleService.loadSubtitleFile(normalizedFile);
       subtitleService.setTrack(track);
+
+      setUploadedSubtitle({
+        url: dataUrl,
+        label: track.label || 'Custom Subtitles',
+      });
+
       setHasSubtitles(true);
       setSubtitlesVisible(true);
-      console.log('✅ Subtitles loaded successfully:', track.label);
+      console.log('[subtitles] Ready and SuperEmbed URL updated:', track.label);
     } catch (error) {
-      console.error('❌ Error loading subtitles:', error);
+      console.error('[subtitles] Error loading subtitles:', error);
       alert(error instanceof Error ? error.message : 'Failed to load subtitle file');
     }
   };
-
   const handleToggleSubtitles = () => {
     setSubtitlesVisible(!subtitlesVisible);
   };
@@ -372,6 +387,11 @@ function PlayerPage() {
     subtitleService.stop();
     setSubtitleTimerRunning(false);
   };
+
+  const streamQualityLabel = useVipStream ? 'VIP Stream' : 'Standard Stream';
+  const streamQualityIndicatorClass = useVipStream
+    ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/40'
+    : 'bg-slate-700/40 text-slate-200 border border-slate-500/50';
 
   if (isLoading) {
     return (
@@ -420,37 +440,62 @@ function PlayerPage() {
               </Button>
               
               {/* Settings Dropdown */}
-              <div className="relative settings-dropdown">
-                <Button
-                  onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                  variant="outline"
-                  size="sm"
-                  className="text-white border-slate-400 bg-slate-900/30 hover:bg-slate-700/40 hover:border-slate-300 font-medium"
+              <div className="flex items-center gap-3">
+                <span
+                  className={`text-xs font-semibold tracking-wide px-3 py-1 rounded-full ${streamQualityIndicatorClass}`}
                 >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Stream Settings
-                  <ChevronDown className="w-4 h-4 ml-2" />
-                </Button>
-                
-                {showSettingsDropdown && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-sm border border-slate-700 rounded-lg shadow-xl z-50">
-                    <div className="p-2">
-                      <Button
-                        onClick={() => {
-                          handleExtractStreams();
-                          setShowSettingsDropdown(false);
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start text-white hover:bg-green-700/40 hover:text-green-300"
-                      >
-                        SuperEmbed Integration Info
-                      </Button>
+                  {streamQualityLabel}
+                </span>
+                <div className="relative settings-dropdown">
+                  <Button
+                    onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+                    variant="outline"
+                    size="sm"
+                    className="text-white border-slate-400 bg-slate-900/30 hover:bg-slate-700/40 hover:border-slate-300 font-medium"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Stream Settings
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+
+                  {showSettingsDropdown && (
+                    <div className="absolute top-full left-0 mt-2 w-72 bg-slate-900/95 backdrop-blur-sm border border-slate-700 rounded-lg shadow-xl z-50">
+                      <div className="p-2 space-y-1">
+                        <Button
+                          onClick={() => {
+                            handleExtractStreams();
+                            setShowSettingsDropdown(false);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-white hover:bg-green-700/40 hover:text-green-300"
+                        >
+                          SuperEmbed Integration Info
+                        </Button>
+                        <Button
+                          onClick={() => handleSelectStreamMode(true)}
+                          variant="ghost"
+                          size="sm"
+                          disabled={useVipStream}
+                          className="w-full justify-start text-white hover:bg-emerald-700/40 hover:text-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {useVipStream ? 'VIP Stream Active' : 'Switch to VIP Stream'}
+                        </Button>
+                        <Button
+                          onClick={() => handleSelectStreamMode(false)}
+                          variant="ghost"
+                          size="sm"
+                          disabled={!useVipStream}
+                          className="w-full justify-start text-white hover:bg-slate-700/40 hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {useVipStream ? 'Switch to Standard Stream' : 'Standard Stream Active'}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-              
+
               {/* Subtitle Controls */}
               <SubtitleControls
                 onUploadSubtitles={handleUploadSubtitles}
@@ -460,6 +505,7 @@ function PlayerPage() {
                 hasSubtitles={hasSubtitles}
                 isVisible={subtitlesVisible}
                 isTimerRunning={subtitleTimerRunning}
+                activeSubtitleLabel={uploadedSubtitle?.label}
               />
             </div>
 
@@ -515,113 +561,149 @@ function MainApp() {
 
   const handleOpenSettings = () => {
     setShowWelcome(false);
-    // Settings will be opened by the Layout component
+    window.dispatchEvent(new CustomEvent('streall-open-settings'));
   };
+
+  const renderWithLayout = (content: ReactNode, layoutOptions?: { showNavbar?: boolean; showFooter?: boolean }) => (
+    <RequireAuth>
+      <Layout
+        showNavbar={layoutOptions?.showNavbar ?? true}
+        showFooter={layoutOptions?.showFooter ?? true}
+      >
+        {content}
+      </Layout>
+    </RequireAuth>
+  );
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Routes>
         {/* Home Page */}
-        <Route path="/" element={
-          <Layout>
+        <Route
+          path="/"
+          element={renderWithLayout(
             <>
-              <NetflixHero onPlayContent={handlePlayContent} />
-              <ContentRows />
-              <AnimeSection />
-            </>
-          </Layout>
-        } />
+                          <NetflixHero onPlayContent={handlePlayContent} />
+                          <ContentRows />
+                          <AnimeSection />
+                        </>
+          )}
+        />
+
+        <Route path="/auth" element={<AuthPage />} />
+
+        <Route
+          path="/profile"
+          element={renderWithLayout(<ProfilePage />, { showFooter: false })}
+        />
 
         {/* Search Page */}
-        <Route path="/search" element={
-          <Layout>
+        <Route
+          path="/search"
+          element={renderWithLayout(
             <ContentSearch onPlayContent={handlePlayContent} />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Ultra Search Page */}
-        <Route path="/ultra-search" element={
-          <Layout>
+        <Route
+          path="/ultra-search"
+          element={renderWithLayout(
             <UltraSearch />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Browse Page */}
-        <Route path="/browse" element={
-          <Layout>
+        <Route
+          path="/browse"
+          element={renderWithLayout(
             <AllContentBrowser />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Browse Movies */}
-        <Route path="/movies" element={
-          <Layout>
+        <Route
+          path="/movies"
+          element={renderWithLayout(
             <AllContentBrowser
-              defaultFilter={{ type: 'movie' }}
-              title="Movies"
-              description="Explore our extensive collection of movies"
-            />
-          </Layout>
-        } />
+                          defaultFilter={{ type: 'movie' }}
+                          title="Movies"
+                          description="Explore our extensive collection of movies"
+                        />
+          )}
+        />
 
         {/* Browse TV Shows */}
-        <Route path="/tv" element={
-          <Layout>
+        <Route
+          path="/tv"
+          element={renderWithLayout(
             <AllContentBrowser
-              defaultFilter={{ type: 'tv' }}
-              title="TV Shows"
-              description="Discover amazing TV series and shows"
-            />
-          </Layout>
-        } />
+                          defaultFilter={{ type: 'tv' }}
+                          title="TV Shows"
+                          description="Discover amazing TV series and shows"
+                        />
+          )}
+        />
 
         {/* Anime Page */}
-        <Route path="/anime" element={
-          <Layout>
+        <Route
+          path="/anime"
+          element={renderWithLayout(
             <AnimePage />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Movie Suggestions */}
-        <Route path="/suggestions" element={
-          <Layout>
+        <Route
+          path="/suggestions"
+          element={renderWithLayout(
             <MovieSuggestions />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Watchlist */}
-        <Route path="/watchlist" element={
-          <Layout>
+        <Route
+          path="/watchlist"
+          element={renderWithLayout(
             <WatchlistView onPlayContent={handlePlayContent} />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Player Page */}
-        <Route path="/watch/:mediaType/:contentId" element={<PlayerPage />} />
+        <Route
+          path="/watch/:mediaType/:contentId"
+          element={<RequireAuth><PlayerPage /></RequireAuth>}
+        />
 
         {/* Anime Player Page */}
-        <Route path="/watch/anime/:animeSlug" element={<PlayerPage />} />
+        <Route
+          path="/watch/anime/:animeSlug"
+          element={<RequireAuth><PlayerPage /></RequireAuth>}
+        />
 
         {/* Content Details Page */}
-        <Route path="/details/:mediaType/:contentId" element={
-          <Layout showNavbar={true} showFooter={true}>
+        <Route
+          path="/details/:mediaType/:contentId"
+          element={renderWithLayout(
             <ContentDetails />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Changelog Page */}
-        <Route path="/changelog" element={
-          <Layout showNavbar={true} showFooter={true}>
+        <Route
+          path="/changelog"
+          element={renderWithLayout(
             <ChangelogPage />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Specific Changelog Version */}
-        <Route path="/changelog/:version" element={
-          <Layout showNavbar={true} showFooter={true}>
+        <Route
+          path="/changelog/:version"
+          element={renderWithLayout(
             <ChangelogPage />
-          </Layout>
-        } />
+          )}
+        />
 
         {/* Catch all redirect to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -646,6 +728,8 @@ function App() {
 }
 
 export default App;
+
+
 
 
 

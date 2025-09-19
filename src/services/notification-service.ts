@@ -1,3 +1,5 @@
+import { WATCHLIST_STORAGE_KEY_PREFIX } from './watchlist-service';
+
 export interface PlatformUpdate {
   id: string;
   version: string;
@@ -33,7 +35,7 @@ export interface Notification {
 
 class NotificationService {
   private storageKey = 'streall_notifications';
-  private watchlistKey = 'streall_watchlist';
+  private watchlistKey = WATCHLIST_STORAGE_KEY_PREFIX;
   private settingsKey = 'streall_notification_settings';
 
   // Platform updates (changelog data)

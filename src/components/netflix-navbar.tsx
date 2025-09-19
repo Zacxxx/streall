@@ -174,13 +174,13 @@ export function NetflixNavbar({
 
   const navItems = [
     { id: 'home', label: 'Home', path: '/', view: 'home' as View },
-    { id: 'browse', label: 'Browse All', path: '/browse', icon: Grid },
-    { id: 'search', label: 'Search', path: '/search', icon: Search },
-    { id: 'suggestions', label: 'AI Curator', path: '/suggestions', icon: Sparkles },
-    { id: 'watchlist', label: 'My List', path: '/watchlist', icon: Heart, view: 'watchlist' as View },
-    { id: 'movies', label: 'Movies', path: '/movies', view: 'movies' as View },
-    { id: 'series', label: 'TV Shows', path: '/tv', view: 'series' as View },
-    { id: 'anime', label: 'Anime', path: '/anime', icon: Tv, view: 'anime' as View }
+    { id: 'browse', label: 'Browse All', path: '/browse', icon: Grid, requiresAuth: true },
+    { id: 'search', label: 'Search', path: '/search', icon: Search, requiresAuth: true },
+    { id: 'suggestions', label: 'AI Curator', path: '/suggestions', icon: Sparkles, requiresAuth: true },
+    { id: 'watchlist', label: 'My List', path: '/watchlist', icon: Heart, view: 'watchlist' as View, requiresAuth: true },
+    { id: 'movies', label: 'Movies', path: '/movies', view: 'movies' as View, requiresAuth: true },
+    { id: 'series', label: 'TV Shows', path: '/tv', view: 'series' as View, requiresAuth: true },
+    { id: 'anime', label: 'Anime', path: '/anime', icon: Tv, view: 'anime' as View, requiresAuth: true }
   ];
 
   const isActive = (path: string) => {
@@ -269,6 +269,16 @@ export function NetflixNavbar({
               <Link
                 key={item.id}
                 to={item.path}
+                onClick={(event) => {
+                  if (item.requiresAuth && !isAuthenticated) {
+                    event.preventDefault();
+                    onLogin?.();
+                    return;
+                  }
+                  setShowInlineSearch(false);
+                  setSearchQuery('');
+                  setSearchResults([]);
+                }}
                 className={`relative px-2 xl:px-3 py-2 text-sm font-medium transition-all duration-300 flex items-center gap-2 group whitespace-nowrap ${
                   active
                     ? 'text-white'
@@ -562,7 +572,17 @@ export function NetflixNavbar({
                 >
                   <Link
                     to={item.path}
-                    onClick={() => setShowProfileMenu(false)}
+                    onClick={(event) => {
+                      if (item.requiresAuth && !isAuthenticated) {
+                        event.preventDefault();
+                        onLogin?.();
+                      } else {
+                        setShowInlineSearch(false);
+                        setSearchQuery('');
+                        setSearchResults([]);
+                      }
+                      setShowProfileMenu(false);
+                    }}
                     className={`block w-full text-left px-3 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 ${
                       active
                         ? 'text-white bg-red-600/20 border border-red-500/30'

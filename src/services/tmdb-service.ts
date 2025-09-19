@@ -1,6 +1,7 @@
 // Direct TMDB API service with SuperEmbed streaming integration
 import { settingsService } from './settings-service';
-import { buildSuperEmbedUrl } from './superembed-service';
+import { buildSuperEmbedUrl, type SuperEmbedOptions } from './superembed-service';
+
 import { trackPerformance, trackError } from './monitoring-service';
 
 // Fallback API key for development - will be overridden by settings service in production
@@ -333,26 +334,51 @@ class TMDBService {
   }
 
   // Generate SuperEmbed streaming URLs
-  private generateSuperEmbedUrl(id: number | string, type: 'movie' | 'tv', season?: number, episode?: number): string {
-    const stringId = id.toString();
-    const isImdbId = typeof id === 'string' && stringId.trim().startsWith('tt');
+  private generateSuperEmbedUrl(
+    id: number | string,
+    type: 'movie' | 'tv',
+    season?: number,
+    episode?: number,
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+  ): string {
+    const trimmedId = typeof id === 'string' ? id.trim() : id;
+    const isImdbId = typeof trimmedId === 'string' && trimmedId.startsWith('tt');
+    const imdbIdentifier = isImdbId ? trimmedId : undefined;
+    const tmdbIdentifier = isImdbId
+      ? undefined
+      : typeof trimmedId === 'number'
+        ? trimmedId
+        : trimmedId.toString();
 
     return buildSuperEmbedUrl(type, {
-      imdbId: isImdbId ? stringId : undefined,
-      tmdbId: isImdbId ? undefined : stringId,
+      imdbId: imdbIdentifier,
+      tmdbId: tmdbIdentifier,
       season,
       episode,
+      ...extras,
     });
   }
 
   // Get streaming URL for any content (supports both TMDB and IMDB IDs)
-  getStreamingUrl(id: number | string, type: 'movie' | 'tv', season?: number, episode?: number): string {
-    return this.generateSuperEmbedUrl(id, type, season, episode);
+  getStreamingUrl(
+    id: number | string,
+    type: 'movie' | 'tv',
+    season?: number,
+    episode?: number,
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+  ): string {
+    return this.generateSuperEmbedUrl(id, type, season, episode, extras);
   }
 
   // Get streaming URL specifically for IMDB ID
-  getStreamingUrlByImdbId(imdbId: string, type: 'movie' | 'tv', season?: number, episode?: number): string {
-    return this.generateSuperEmbedUrl(imdbId, type, season, episode);
+  getStreamingUrlByImdbId(
+    imdbId: string,
+    type: 'movie' | 'tv',
+    season?: number,
+    episode?: number,
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+  ): string {
+    return this.generateSuperEmbedUrl(imdbId, type, season, episode, extras);
   }
 
   // Get trending content
@@ -741,6 +767,7 @@ class TMDBService {
 // Export singleton instance
 export const tmdbService = new TMDBService();
 export default tmdbService;
+
 
 
 

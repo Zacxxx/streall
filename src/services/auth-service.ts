@@ -1,4 +1,6 @@
-import { settingsService } from './settings-service';
+import { supabaseClient } from '@/lib/supabase-client';
+import type { Session, User } from '@supabase/supabase-js';
+import { WATCHLIST_STORAGE_KEY_PREFIX, watchlistService } from './watchlist-service';
 
 export interface UserProfile {
   id: string;
@@ -20,134 +22,106 @@ export interface AuthState {
   user: UserProfile | null;
 }
 
+type AuthListener = (state: AuthState) => void;
+
+const defaultPreferences: UserProfile['preferences'] = {
+  theme: 'dark',
+  language: 'en',
+  autoplay: true,
+  notifications: true,
+};
+
 class AuthService {
-  private readonly STORAGE_KEY = 'streall_user_profile';
   private authState: AuthState = {
     isAuthenticated: false,
-    user: null
+    user: null,
   };
 
+  private listeners = new Set<AuthListener>();
+
   constructor() {
-    this.loadFromStorage();
+    this.initialize();
   }
 
-  private loadFromStorage(): void {
+  private async initialize() {
     try {
-      const stored = settingsService.isDesktopApp 
-        ? this.loadFromFile() 
-        : this.loadFromLocalStorage();
-      
-      if (stored) {
-        this.authState = stored;
-      }
+      const { data } = await supabaseClient.auth.getSession();
+      this.applySession(data.session);
     } catch (error) {
-      console.error('Error loading auth state from storage:', error);
+      console.error('[auth] Failed to retrieve existing session', error);
+    }
+
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      this.applySession(session);
+    });
+
+  }
+
+  private notifyListeners() {
+    const snapshot = this.getCurrentAuthState();
+    for (const listener of this.listeners) {
+      try {
+        listener(snapshot);
+      } catch (error) {
+        console.error('[auth] listener error', error);
+      }
+    }
+  }
+
+  private applySession(session: Session | null) {
+    if (session?.user) {
+      const userProfile = this.mapUser(session.user);
+      this.authState = {
+        isAuthenticated: true,
+        user: userProfile,
+      };
+      watchlistService.setUserContext(userProfile.id);
+    } else {
       this.authState = {
         isAuthenticated: false,
-        user: null
+        user: null,
       };
+      watchlistService.setUserContext(null);
     }
+
+    this.notifyListeners();
   }
 
-  private loadFromLocalStorage(): AuthState | null {
-    const stored = localStorage.getItem(this.STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
-  }
+  private mapUser(user: User): UserProfile {
+    const metadata = user.user_metadata ?? {};
+    const preferences = metadata.preferences as Partial<UserProfile['preferences']> | undefined;
 
-  private loadFromFile(): AuthState | null {
-    // For desktop app, we'll use localStorage for now
-    // In a real desktop app, this would read from a config file
-    return this.loadFromLocalStorage();
-  }
-
-  private saveToStorage(): void {
-    try {
-      if (settingsService.isDesktopApp) {
-        this.saveToFile();
-      } else {
-        this.saveToLocalStorage();
-      }
-    } catch (error) {
-      console.error('Error saving auth state to storage:', error);
-    }
-  }
-
-  private saveToLocalStorage(): void {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.authState));
-  }
-
-  private saveToFile(): void {
-    // For desktop app, we'll use localStorage for now
-    // In a real desktop app, this would write to a config file
-    this.saveToLocalStorage();
-  }
-
-  // Create a new local user profile
-  createProfile(name: string, email?: string): UserProfile {
-    const user: UserProfile = {
-      id: `user-${Date.now()}`,
-      name: name.trim(),
-      email: email?.trim(),
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
+    return {
+      id: user.id,
+      name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Streall User',
+      email: user.email ?? undefined,
+      avatar: metadata.avatar_url ?? undefined,
+      createdAt: user.created_at,
+      lastLogin: user.last_sign_in_at || user.created_at,
       preferences: {
-        theme: 'dark',
-        language: 'en',
-        autoplay: true,
-        notifications: true
-      }
+        ...defaultPreferences,
+        ...(preferences || {}),
+      },
     };
-
-    this.authState = {
-      isAuthenticated: true,
-      user
-    };
-
-    this.saveToStorage();
-    return user;
   }
 
-  // Quick login for existing user
-  login(): boolean {
-    if (this.authState.user) {
-      this.authState.user.lastLogin = new Date().toISOString();
-      this.authState.isAuthenticated = true;
-      this.saveToStorage();
-      return true;
-    }
-    return false;
-  }
-
-  logout(): void {
-    this.authState = {
-      isAuthenticated: false,
-      user: this.authState.user // Keep user data but mark as not authenticated
+  addListener(listener: AuthListener) {
+    this.listeners.add(listener);
+    listener(this.getCurrentAuthState());
+    return () => {
+      this.listeners.delete(listener);
     };
-    this.saveToStorage();
-  }
-
-  deleteProfile(): void {
-    this.authState = {
-      isAuthenticated: false,
-      user: null
-    };
-    
-    // Clear all related data
-    if (settingsService.isDesktopApp) {
-      localStorage.removeItem(this.STORAGE_KEY);
-      localStorage.removeItem('streall_watchlist');
-    } else {
-      localStorage.removeItem(this.STORAGE_KEY);
-      localStorage.removeItem('streall_watchlist');
-    }
   }
 
   getCurrentAuthState(): AuthState {
-    return { ...this.authState };
+    return {
+      isAuthenticated: this.authState.isAuthenticated,
+      user: this.authState.user ? { ...this.authState.user, preferences: { ...this.authState.user.preferences } } : null,
+    };
   }
 
   isAuthenticated(): boolean {
-    return this.authState.isAuthenticated && this.authState.user !== null;
+    return this.authState.isAuthenticated;
   }
 
   hasProfile(): boolean {
@@ -155,40 +129,109 @@ class AuthService {
   }
 
   getCurrentUser(): UserProfile | null {
-    return this.authState.user ? { ...this.authState.user } : null;
+    const state = this.getCurrentAuthState();
+    return state.user;
   }
 
-  updateUserProfile(updates: Partial<UserProfile>): boolean {
+  async signIn(email: string, password: string): Promise<void> {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      throw new Error(error.message || 'Failed to sign in');
+    }
+  }
+
+  async signUp(name: string, email: string, password: string): Promise<{ needsConfirmation: boolean }> {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to register account');
+    }
+
+    if (data.user && !data.session) {
+      // Email confirmations enabled
+      return { needsConfirmation: true };
+    }
+
+    return { needsConfirmation: false };
+  }
+
+  async signOut(): Promise<void> {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+      throw new Error(error.message || 'Failed to sign out');
+    }
+  }
+
+  async updateUserProfile(updates: { name?: string; email?: string; avatar?: string }): Promise<boolean> {
     if (!this.authState.user) {
       return false;
     }
 
-    this.authState.user = {
-      ...this.authState.user,
-      ...updates
-    };
+    const payload: Parameters<typeof supabaseClient.auth.updateUser>[0] = {};
 
-    this.saveToStorage();
+    if (updates.email && updates.email !== this.authState.user.email) {
+      payload.email = updates.email;
+    }
+
+    if (updates.name || updates.avatar) {
+      payload.data = {
+        ...(updates.name ? { full_name: updates.name } : {}),
+        ...(updates.avatar ? { avatar_url: updates.avatar } : {}),
+      };
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return true;
+    }
+
+    const { error } = await supabaseClient.auth.updateUser(payload);
+    if (error) {
+      throw new Error(error.message || 'Failed to update profile');
+    }
+
+    // Refresh local state
+    const { data } = await supabaseClient.auth.getSession();
+    this.applySession(data.session);
     return true;
   }
 
-  updatePreferences(preferences: Partial<UserProfile['preferences']>): boolean {
+  async updatePreferences(preferences: Partial<UserProfile['preferences']>): Promise<boolean> {
     if (!this.authState.user) {
       return false;
     }
 
-    this.authState.user.preferences = {
-      ...this.authState.user.preferences,
-      ...preferences
-    };
+    const { error } = await supabaseClient.auth.updateUser({
+      data: {
+        preferences: {
+          ...this.authState.user.preferences,
+          ...preferences,
+        },
+      },
+    });
 
-    this.saveToStorage();
+    if (error) {
+      throw new Error(error.message || 'Failed to update preferences');
+    }
+
+    const { data } = await supabaseClient.auth.getSession();
+    this.applySession(data.session);
     return true;
   }
 
-  // Get user statistics
+  async deleteProfile(): Promise<void> {
+    throw new Error('Account deletion must be handled by support. Please contact the administrator.');
+  }
+
   getUserStats(): {
-    accountAge: number; // days
+    accountAge: number;
     watchlistCount: number;
     lastActive: string;
   } {
@@ -196,31 +239,34 @@ class AuthService {
       return {
         accountAge: 0,
         watchlistCount: 0,
-        lastActive: 'Never'
+        lastActive: 'Never',
       };
     }
 
     const createdDate = new Date(this.authState.user.createdAt);
     const now = new Date();
-    const accountAge = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    const accountAge = Math.max(0, Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)));
 
-    // Get watchlist count from localStorage
+    const watchlistKey = `${WATCHLIST_STORAGE_KEY_PREFIX}_${this.authState.user.id}`;
     let watchlistCount = 0;
     try {
-      const watchlist = localStorage.getItem('streall_watchlist');
-      if (watchlist) {
-        watchlistCount = JSON.parse(watchlist).length;
+      const stored = localStorage.getItem(watchlistKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          watchlistCount = parsed.length;
+        }
       }
     } catch (error) {
-      console.error('Error reading watchlist count:', error);
+      console.error('[auth] Failed to calculate watchlist count', error);
     }
 
     return {
       accountAge,
       watchlistCount,
-      lastActive: this.authState.user.lastLogin
+      lastActive: this.authState.user.lastLogin,
     };
   }
 }
 
-export const authService = new AuthService(); 
+export const authService = new AuthService();
