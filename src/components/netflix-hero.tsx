@@ -267,7 +267,7 @@ export function NetflixHero({ onPlayContent }: NetflixHeroProps) {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="text-lg text-slate-200 mb-8 leading-relaxed max-w-xl line-clamp-3"
+              className="text-lg text-slate-200 mb-8 leading-relaxed max-w-xl line-clamp-3 min-h-[96px] sm:min-h-0"
               style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
             >
               {currentContent.overview}
@@ -352,15 +352,15 @@ export function NetflixHero({ onPlayContent }: NetflixHeroProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1 }}
-            className="absolute bottom-20 right-8 flex flex-col gap-2"
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 md:bottom-20 md:left-auto md:right-8 md:translate-x-0 md:flex-col"
           >
             {featuredContent.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`w-1 h-8 rounded-full transition-all duration-300 ${
-                  index === currentIndex 
-                    ? 'bg-white' 
+                className={`h-1 w-6 md:h-8 md:w-1 rounded-full transition-all duration-300 ${
+                  index === currentIndex
+                    ? 'bg-white'
                     : 'bg-slate-600 hover:bg-slate-400'
                 }`}
               />
