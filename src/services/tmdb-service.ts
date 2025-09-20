@@ -340,7 +340,7 @@ class TMDBService {
     type: 'movie' | 'tv',
     season?: number,
     episode?: number,
-    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle' | 'startTimeSeconds' | 'autoplay'>
   ): string {
     const trimmedId = typeof id === 'string' ? id.trim() : id;
     const isImdbId = typeof trimmedId === 'string' && trimmedId.startsWith('tt');
@@ -366,7 +366,7 @@ class TMDBService {
     type: 'movie' | 'tv',
     season?: number,
     episode?: number,
-    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle' | 'startTimeSeconds' | 'autoplay'>
   ): string {
     return this.generateSuperEmbedUrl(id, type, season, episode, extras);
   }
@@ -377,7 +377,7 @@ class TMDBService {
     type: 'movie' | 'tv',
     season?: number,
     episode?: number,
-    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle' | 'startTimeSeconds' | 'autoplay'>
   ): string {
     return this.generateSuperEmbedUrl(imdbId, type, season, episode, extras);
   }

@@ -701,8 +701,25 @@ export function AllContentBrowser({
                         seasons: item.seasons || undefined,
                         episodes: item.episodes || undefined
                       }}
-                      onPlay={() => {
+                      onPlay={(_contentId, options) => {
                         const contentId = item.tmdb_id || item.id;
+                        const params = new URLSearchParams();
+                        if (options?.season) {
+                          params.set('s', options.season.toString());
+                        }
+                        if (options?.episode) {
+                          params.set('e', options.episode.toString());
+                        }
+                        if (options?.resumeAt) {
+                          params.set('t', Math.floor(options.resumeAt).toString());
+                        }
+
+                        if (params.size > 0) {
+                          const query = params.toString();
+                          navigate(`/watch/${item.type}/${contentId}?${query}`);
+                          return;
+                        }
+
                         navigate(`/details/${item.type}/${contentId}`);
                       }}
                       compact={viewMode === 'list'}
@@ -783,8 +800,25 @@ export function AllContentBrowser({
                           seasons: item.seasons || undefined,
                           episodes: item.episodes || undefined
                         }}
-                        onPlay={() => {
+                        onPlay={(_contentId, options) => {
                           const contentId = item.tmdb_id || item.id;
+                          const params = new URLSearchParams();
+                          if (options?.season) {
+                            params.set('s', options.season.toString());
+                          }
+                          if (options?.episode) {
+                            params.set('e', options.episode.toString());
+                          }
+                          if (options?.resumeAt) {
+                            params.set('t', Math.floor(options.resumeAt).toString());
+                          }
+
+                          if (params.size > 0) {
+                            const query = params.toString();
+                            navigate(`/watch/${item.type}/${contentId}?${query}`);
+                            return;
+                          }
+
                           navigate(`/details/${item.type}/${contentId}`);
                         }}
                         compact={viewMode === 'list'}

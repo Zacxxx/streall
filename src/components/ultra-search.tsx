@@ -8,6 +8,7 @@ import NetflixCard from './netflix-card';
 import { NetflixLoading } from './netflix-loading';
 import { tmdbService } from '../services/tmdb-service';
 import { ContentItem } from '../services/tmdb-service';
+import type { PlaybackOptions } from '@/types/playback';
 import { useNavigate } from 'react-router-dom';
 
 export const UltraSearch: React.FC = () => {
@@ -130,7 +131,24 @@ export const UltraSearch: React.FC = () => {
     }
   };
 
-  const handlePlay = (content: ContentItem) => {
+  const handlePlay = (content: ContentItem, options?: PlaybackOptions) => {
+    const params = new URLSearchParams();
+    if (options?.season) {
+      params.set('s', options.season.toString());
+    }
+    if (options?.episode) {
+      params.set('e', options.episode.toString());
+    }
+    if (options?.resumeAt) {
+      params.set('t', Math.floor(options.resumeAt).toString());
+    }
+
+    const query = params.toString();
+    if (query) {
+      navigate(`/watch/${content.type}/${content.tmdb_id}?${query}`);
+      return;
+    }
+
     navigate(`/watch/${content.type}/${content.tmdb_id}`);
   };
 
@@ -397,7 +415,7 @@ export const UltraSearch: React.FC = () => {
                     >
                       <NetflixCard
                         content={convertToCardFormat(item)}
-                        onPlay={() => handlePlay(item)}
+                        onPlay={(_contentId, options) => handlePlay(item, options)}
                         size="medium"
                       />
                     </motion.div>

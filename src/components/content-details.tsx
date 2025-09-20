@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Plus, ArrowLeft, Star, Calendar, Clock, Tv, Heart } from 'lucide-react';
+import { Play, Plus, ArrowLeft, Star, Calendar, Clock, Tv, Heart, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { tmdbService, type ContentItem } from '@/services/tmdb-service';
+import { useWatchProgress } from '@/hooks/use-watch-progress';
+import type { PlaybackOptions } from '@/types/playback';
 import { watchlistService } from '@/services/watchlist-service';
 
 export function ContentDetails() {
@@ -17,6 +19,47 @@ export function ContentDetails() {
   const [selectedEpisode, setSelectedEpisode] = useState('1');
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [similarContent, setSimilarContent] = useState<ContentItem[]>([]);
+  const resumeProgress = useWatchProgress(content?.tmdb_id, content?.type);
+  const resumeAvailable = !!(resumeProgress && resumeProgress.positionSeconds > 5);
+
+  const resumeDetails = useMemo(() => {
+    if (!resumeAvailable || !resumeProgress) {
+      return null as null | {
+        timeLabel: string;
+        episodeLabel: string | null;
+      };
+    }
+
+    const totalSeconds = Math.floor(resumeProgress.positionSeconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const parts: string[] = [];
+    if (hours > 0) {
+      parts.push(`${hours}h`);
+    }
+    if (minutes > 0 || hours === 0) {
+      parts.push(`${minutes}m`);
+    }
+    if (hours === 0 && minutes === 0) {
+      parts.push(`${seconds}s`);
+    }
+
+    const episodeLabel = content?.type === 'tv'
+      ? [
+          resumeProgress.season ? `S${resumeProgress.season}` : null,
+          resumeProgress.episode ? `E${resumeProgress.episode}` : null,
+        ]
+          .filter(Boolean)
+          .join('') || 'Episode'
+      : null;
+
+    return {
+      timeLabel: parts.join(' '),
+      episodeLabel,
+    };
+  }, [content?.type, resumeAvailable, resumeProgress]);
 
   useEffect(() => {
     const loadContent = async () => {
@@ -82,24 +125,35 @@ export function ContentDetails() {
     loadContent();
   }, [contentId, mediaType]);
 
-  const handlePlay = () => {
+  const handlePlay = (options?: PlaybackOptions) => {
     if (!content) return;
-    
+
     // Use TMDB ID consistently with media type
     const id = content.tmdb_id;
-    
+
     if (content.type === 'tv') {
-      // For TV shows, include season and episode in the URL
-      navigate(`/watch/${content.type}/${id}?s=${selectedSeason}&e=${selectedEpisode}`);
+      const seasonValue = options?.season ?? Number(selectedSeason);
+      const episodeValue = options?.episode ?? Number(selectedEpisode);
+      const params = new URLSearchParams();
+      params.set('s', String(seasonValue));
+      params.set('e', String(episodeValue));
+      if (options?.resumeAt) {
+        params.set('t', Math.floor(options.resumeAt).toString());
+      }
+      navigate(`/watch/${content.type}/${id}?${params.toString()}`);
     } else {
-      // For movies, also include media type
-      navigate(`/watch/${content.type}/${id}`);
+      const params = new URLSearchParams();
+      if (options?.resumeAt) {
+        params.set('t', Math.floor(options.resumeAt).toString());
+      }
+      const query = params.toString();
+      navigate(query ? `/watch/${content.type}/${id}?${query}` : `/watch/${content.type}/${id}`);
     }
   };
 
   const handleAddToWatchlist = () => {
     if (!content) return;
-    
+
     if (isInWatchlist) {
       const removed = watchlistService.removeFromWatchlist(content.tmdb_id.toString());
       if (removed) setIsInWatchlist(false);
@@ -118,6 +172,25 @@ export function ContentDetails() {
       const added = watchlistService.addToWatchlist(watchlistItem);
       if (added) setIsInWatchlist(true);
     }
+  };
+
+  const handleResume = () => {
+    if (!resumeProgress || !content) {
+      return;
+    }
+
+    if (resumeProgress.season) {
+      setSelectedSeason(String(resumeProgress.season));
+    }
+    if (resumeProgress.episode) {
+      setSelectedEpisode(String(resumeProgress.episode));
+    }
+
+    handlePlay({
+      resumeAt: resumeProgress.positionSeconds,
+      season: resumeProgress.season,
+      episode: resumeProgress.episode,
+    });
   };
 
   const handleBack = () => {
@@ -284,14 +357,28 @@ export function ContentDetails() {
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-4 mb-8">
                 <Button
-                  onClick={handlePlay}
+                  onClick={() => handlePlay()}
                   size="lg"
                   className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-3 text-lg rounded-md flex items-center gap-3"
                 >
                   <Play className="w-5 h-5 fill-current" />
                   {content.type === 'tv' ? `Play S${selectedSeason}:E${selectedEpisode}` : 'Play Now'}
                 </Button>
-                
+
+                {resumeAvailable && resumeProgress && (
+                  <Button
+                    onClick={handleResume}
+                    variant="outline"
+                    size="lg"
+                    className="border-red-500 text-red-400 hover:bg-red-600/20 font-bold px-8 py-3 text-lg rounded-md flex items-center gap-3"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                    Resume
+                    {resumeDetails?.episodeLabel ? ` ${resumeDetails.episodeLabel}` : ''}
+                    {resumeDetails?.timeLabel ? ` • ${resumeDetails.timeLabel}` : ''}
+                  </Button>
+                )}
+
                 <Button
                   onClick={handleAddToWatchlist}
                   variant="outline"
