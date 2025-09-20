@@ -278,39 +278,39 @@ export function NetflixHero({ onPlayContent }: NetflixHeroProps) {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="flex items-center gap-4 mb-8"
+              className="flex flex-col sm:flex-row sm:items-center sm:gap-4 gap-3 mb-8 w-full max-w-xl"
             >
               <Button
                 onClick={handlePlay}
                 size="lg"
-                className="bg-white text-black hover:bg-slate-200 font-bold px-8 py-3 text-lg rounded-md transition-all duration-300 hover:scale-105 flex items-center gap-3"
+                className="bg-white text-black hover:bg-slate-200 font-bold px-6 py-3 md:px-8 md:py-3 text-base md:text-lg rounded-md transition-all duration-300 hover:scale-105 flex items-center justify-center gap-3 w-full sm:w-auto"
               >
                 <Play className="w-6 h-6 fill-current" />
                 {currentContent.type === 'tv' ? 'Watch Series' : 'Play'}
               </Button>
-              
+
               <Button
                 onClick={() => {
-                  const contentId = currentContent.imdb_id && currentContent.imdb_id !== 'undefined' 
-                    ? currentContent.imdb_id 
+                  const contentId = currentContent.imdb_id && currentContent.imdb_id !== 'undefined'
+                    ? currentContent.imdb_id
                     : currentContent.tmdb_id;
                   navigate(`/details/${currentContent.type}/${contentId}`);
                 }}
                 variant="outline"
                 size="lg"
-                className="bg-slate-600/70 border-slate-500 text-white hover:bg-slate-500/70 font-bold px-8 py-3 text-lg rounded-md backdrop-blur-md flex items-center gap-3"
+                className="bg-slate-600/70 border-slate-500 text-white hover:bg-slate-500/70 font-bold px-6 py-3 md:px-8 md:py-3 text-base md:text-lg rounded-md backdrop-blur-md flex items-center justify-center gap-3 w-full sm:w-auto"
               >
                 <Info className="w-5 h-5" />
                 More Info
               </Button>
 
               {/* Quick Action Buttons */}
-              <div className="flex gap-2 ml-4">
-                <button 
+              <div className="flex gap-2 sm:ml-4 w-full sm:w-auto justify-start sm:justify-center mt-1 sm:mt-0">
+                <button
                   onClick={handleAddToWatchlist}
-                  className={`w-12 h-12 rounded-full border-2 backdrop-blur-sm flex items-center justify-center transition-all duration-300 ${
-                    isInWatchlist 
-                      ? 'border-red-500 bg-red-600/80 text-white hover:bg-red-500/80' 
+                  className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 backdrop-blur-sm flex items-center justify-center transition-all duration-300 ${
+                    isInWatchlist
+                      ? 'border-red-500 bg-red-600/80 text-white hover:bg-red-500/80'
                       : 'border-white/60 bg-black/60 text-white hover:border-white hover:bg-white/10'
                   }`}
                   title={isInWatchlist ? 'Remove from My List' : 'Add to My List'}
@@ -321,12 +321,12 @@ export function NetflixHero({ onPlayContent }: NetflixHeroProps) {
                     <Plus className="w-5 h-5" />
                   )}
                 </button>
-                <button className="w-12 h-12 rounded-full border-2 border-white/60 bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:border-white hover:bg-white/10 transition-all duration-300">
+                <button className="w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 border-white/60 bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:border-white hover:bg-white/10 transition-all duration-300">
                   <ThumbsUp className="w-5 h-5" />
                 </button>
-                <button 
+                <button
                   onClick={() => setIsMuted(!isMuted)}
-                  className="w-12 h-12 rounded-full border-2 border-white/60 bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:border-white hover:bg-white/10 transition-all duration-300"
+                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 border-white/60 bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:border-white hover:bg-white/10 transition-all duration-300"
                 >
                   {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </button>
