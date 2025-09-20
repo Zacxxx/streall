@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Info, Star, Volume2, VolumeX, Plus, ThumbsUp, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { tmdbService, type ContentItem } from '@/services/tmdb-service';
+import type { PlaybackOptions } from '@/types/playback';
 import { watchlistService } from '@/services/watchlist-service';
 import { useNavigate } from 'react-router-dom';
 
 interface NetflixHeroProps {
-  onPlayContent: (content: ContentItem) => void;
+  onPlayContent: (content: ContentItem, options?: PlaybackOptions) => void;
 }
 
 export function NetflixHero({ onPlayContent }: NetflixHeroProps) {

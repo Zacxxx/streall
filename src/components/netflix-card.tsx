@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Plus, ThumbsUp, Star, Heart, Info } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Play, Plus, ThumbsUp, Star, Heart, Info, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { watchlistService } from '@/services/watchlist-service';
 import { useNavigate } from 'react-router-dom';
+import { useWatchProgress } from '@/hooks/use-watch-progress';
+import type { PlaybackOptions } from '@/types/playback';
 
 interface NetflixCardProps {
   content: {
@@ -22,7 +24,7 @@ interface NetflixCardProps {
     episodes?: number;
     tmdb_id?: number; // Add TMDB ID for proper routing
   };
-  onPlay: (contentId: string) => void;
+  onPlay: (contentId: string, options?: PlaybackOptions) => void;
   onAddToList?: (contentId: string) => void;
   size?: 'small' | 'medium' | 'large';
   compact?: boolean;
@@ -40,6 +42,52 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const progressMediaType: 'movie' | 'tv' = content.type === 'movie' ? 'movie' : 'tv';
+  const resumeProgress = useWatchProgress(content.tmdb_id, progressMediaType);
+
+  const progressPercent = useMemo(() => {
+    if (!resumeProgress?.durationSeconds || resumeProgress.durationSeconds <= 0) {
+      return null;
+    }
+    return Math.min(100, Math.round((resumeProgress.positionSeconds / resumeProgress.durationSeconds) * 100));
+  }, [resumeProgress]);
+
+  const resumeDetails = useMemo(() => {
+    if (!resumeProgress || resumeProgress.positionSeconds < 5) {
+      return null;
+    }
+
+    const totalSeconds = Math.floor(resumeProgress.positionSeconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const timeParts: string[] = [];
+    if (hours > 0) {
+      timeParts.push(`${hours}h`);
+    }
+    if (minutes > 0 || hours === 0) {
+      timeParts.push(`${minutes}m`);
+    }
+    if (hours === 0 && minutes === 0) {
+      timeParts.push(`${seconds}s`);
+    }
+
+    const episodeLabel = resumeProgress.mediaType === 'tv'
+      ? [
+          resumeProgress.season ? `S${resumeProgress.season}` : null,
+          resumeProgress.episode ? `E${resumeProgress.episode}` : null,
+        ]
+          .filter(Boolean)
+          .join('') || 'Episode'
+      : null;
+
+    return {
+      timeLabel: timeParts.join(' '),
+      episodeLabel,
+    };
+  }, [resumeProgress]);
+  const hasResume = !!resumeDetails;
 
   useEffect(() => {
     setIsInWatchlist(watchlistService.isInWatchlist(content.imdb_id));
@@ -51,11 +99,34 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
     large: compact ? 'w-full h-40' : 'w-56 h-80 max-h-80'
   };
 
-  const handlePlay = () => {
-    // Always use TMDB ID for consistent streaming navigation
-    // This ensures compatibility with the parent component's lookup logic
+  const triggerPlay = (options?: PlaybackOptions, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
     const playId = content.tmdb_id?.toString() || content.id;
-    onPlay(playId);
+    onPlay(playId, options);
+  };
+
+  const handlePlay = (event?: React.MouseEvent) => {
+    triggerPlay(undefined, event);
+  };
+
+  const handleResumeClick = (event: React.MouseEvent) => {
+    if (!resumeProgress) {
+      triggerPlay(undefined, event);
+      return;
+    }
+
+    triggerPlay(
+      {
+        resumeAt: resumeProgress.positionSeconds,
+        season: resumeProgress.season,
+        episode: resumeProgress.episode,
+        mediaType: resumeProgress.mediaType,
+      },
+      event,
+    );
   };
 
   const handleCardClick = () => {
@@ -180,11 +251,22 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
 
         {/* Compact Actions */}
         <div className="flex items-center gap-2">
+          {hasResume && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-red-600 text-white hover:bg-red-500"
+              onClick={(event) => handleResumeClick(event)}
+            >
+              <RotateCcw className="w-4 h-4 mr-1" />
+              Resume
+            </Button>
+          )}
           <Button
             variant="secondary"
             size="sm"
             className="bg-white text-black hover:bg-gray-200"
-            onClick={handlePlay}
+            onClick={(event) => handlePlay(event)}
           >
             <Play className="w-4 h-4 mr-1 fill-black" />
             Play
@@ -265,16 +347,32 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
         >
           {/* Action Buttons Row */}
           <div className="flex items-center justify-between mb-2">
-            <Button
-              variant="secondary" 
-              size="sm"
-              className="bg-white text-black hover:bg-gray-200 font-medium px-3 py-1 text-xs"
-              onClick={handlePlay}
-            >
-              <Play className="w-3 h-3 mr-1 fill-black" />
-              Play
-            </Button>
-            
+            <div className="flex items-center gap-2">
+              {hasResume && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="bg-red-600 text-white hover:bg-red-500 font-medium px-3 py-1 text-xs"
+                  onClick={(event) => handleResumeClick(event)}
+                >
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  Resume
+                  {resumeDetails?.episodeLabel && (
+                    <span className="ml-1 text-[10px] opacity-80">{resumeDetails.episodeLabel}</span>
+                  )}
+                </Button>
+              )}
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-white text-black hover:bg-gray-200 font-medium px-3 py-1 text-xs"
+                onClick={(event) => handlePlay(event)}
+              >
+                <Play className="w-3 h-3 mr-1 fill-black" />
+                Play
+              </Button>
+            </div>
+
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
@@ -322,6 +420,17 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
             <span>{duration}</span>
           </div>
 
+          {hasResume && resumeDetails && (
+            <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-red-300 mb-1">
+              <RotateCcw className="w-3 h-3" />
+              <span>
+                Resume
+                {resumeDetails.episodeLabel ? ` ${resumeDetails.episodeLabel}` : ''}
+                {resumeDetails.timeLabel ? ` • ${resumeDetails.timeLabel}` : ''}
+              </span>
+            </div>
+          )}
+
           {/* Genres */}
           {content.genres && content.genres.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-1">
@@ -343,6 +452,15 @@ const NetflixCard: React.FC<NetflixCardProps> = ({
             </p>
           )}
         </div>
+
+        {progressPercent !== null && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+            <div
+              className="h-full bg-red-600"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        )}
     </div>
   );
 };

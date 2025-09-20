@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { performanceOptimizationService } from '@/services/performance-optimization-service';
 import LazyNetflixCard from './lazy-netflix-card';
+import type { PlaybackOptions } from '@/types/playback';
 
 interface BatchContentLoaderProps {
   content: Array<{
@@ -20,7 +21,7 @@ interface BatchContentLoaderProps {
     episodes?: number;
     tmdb_id?: number;
   }>;
-  onPlay: (contentId: string) => void;
+  onPlay: (contentId: string, options?: PlaybackOptions) => void;
   onAddToList?: (contentId: string) => void;
   size?: 'small' | 'medium' | 'large';
   compact?: boolean;

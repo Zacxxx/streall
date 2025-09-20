@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { useLastWatchedProgress } from '@/hooks/use-watch-progress';
 
 
 // Toast notification system
@@ -14,6 +17,15 @@ interface Toast {
 
 export function NetflixToast() {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const navigate = useNavigate();
+  const lastWatched = useLastWatchedProgress();
+  const [resumeDismissed, setResumeDismissed] = useState(false);
+
+  useEffect(() => {
+    if (lastWatched) {
+      setResumeDismissed(false);
+    }
+  }, [lastWatched?.tmdbId, lastWatched?.updatedAt]);
 
   const addToast = (toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -56,8 +68,132 @@ export function NetflixToast() {
     }
   };
 
+  const resumeDetails = useMemo(() => {
+    if (!lastWatched || lastWatched.positionSeconds < 5) {
+      return null;
+    }
+
+    const totalSeconds = Math.floor(lastWatched.positionSeconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const timeParts: string[] = [];
+    if (hours > 0) {
+      timeParts.push(`${hours}h`);
+    }
+    if (minutes > 0 || hours === 0) {
+      timeParts.push(`${minutes}m`);
+    }
+    if (hours === 0 && minutes === 0) {
+      timeParts.push(`${seconds}s`);
+    }
+
+    const episodeLabel = lastWatched.mediaType === 'tv'
+      ? [
+          lastWatched.season ? `S${lastWatched.season}` : null,
+          lastWatched.episode ? `E${lastWatched.episode}` : null,
+        ]
+          .filter(Boolean)
+          .join('') || 'Episode'
+      : null;
+
+    const progressPercent = lastWatched.durationSeconds && lastWatched.durationSeconds > 0
+      ? Math.min(100, Math.round((lastWatched.positionSeconds / lastWatched.durationSeconds) * 100))
+      : null;
+
+    return {
+      timeLabel: timeParts.join(' '),
+      episodeLabel,
+      progressPercent,
+    };
+  }, [lastWatched]);
+
+  const handleResume = () => {
+    if (!lastWatched) {
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (lastWatched.mediaType === 'tv') {
+      if (lastWatched.season) {
+        params.set('s', lastWatched.season.toString());
+      }
+      if (lastWatched.episode) {
+        params.set('e', lastWatched.episode.toString());
+      }
+    }
+
+    if (lastWatched.positionSeconds) {
+      params.set('t', Math.floor(lastWatched.positionSeconds).toString());
+    }
+
+    const path = `/watch/${lastWatched.mediaType}/${lastWatched.tmdbId}`;
+    const query = params.toString();
+    navigate(query ? `${path}?${query}` : path);
+  };
+
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end space-y-3">
+      <AnimatePresence>
+        {resumeDetails && lastWatched && !resumeDismissed && (
+          <motion.div
+            key="resume-toast"
+            initial={{ opacity: 0, x: 80, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 80, scale: 0.9 }}
+            className="w-72 rounded-xl bg-slate-900/95 backdrop-blur-md shadow-2xl border border-red-500/40 overflow-hidden"
+          >
+            <div className="flex">
+              {lastWatched.poster && (
+                <img
+                  src={lastWatched.poster}
+                  alt={lastWatched.title}
+                  className="w-20 h-24 object-cover"
+                />
+              )}
+              <div className="flex-1 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs uppercase text-red-400 tracking-wide">Continue Watching</p>
+                    <h4 className="text-sm font-semibold text-white line-clamp-2">{lastWatched.title}</h4>
+                    {resumeDetails.episodeLabel && (
+                      <p className="text-[10px] text-slate-300 mt-1">{resumeDetails.episodeLabel}</p>
+                    )}
+                    {resumeDetails.timeLabel && (
+                      <p className="text-[10px] text-slate-400 mt-1">Paused at {resumeDetails.timeLabel}</p>
+                    )}
+                  </div>
+                  <button
+                    className="text-slate-400 hover:text-white transition-colors"
+                    onClick={() => setResumeDismissed(true)}
+                    aria-label="Dismiss resume suggestion"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <Button size="sm" className="bg-red-600 hover:bg-red-500 text-white px-3" onClick={handleResume}>
+                    Resume
+                  </Button>
+                  {resumeDetails.progressPercent !== null && (
+                    <div className="flex-1 ml-2">
+                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-red-500"
+                          style={{ width: `${resumeDetails.progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {toasts.map((toast) => (
           <motion.div

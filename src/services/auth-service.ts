@@ -1,6 +1,7 @@
 import { supabaseClient } from '@/lib/supabase-client';
 import type { Session, User } from '@supabase/supabase-js';
 import { WATCHLIST_STORAGE_KEY_PREFIX, watchlistService } from './watchlist-service';
+import { watchProgressService } from './watch-progress-service';
 
 export interface UserProfile {
   id: string;
@@ -76,12 +77,14 @@ class AuthService {
         user: userProfile,
       };
       watchlistService.setUserContext(userProfile.id);
+      watchProgressService.setUserContext(userProfile.id);
     } else {
       this.authState = {
         isAuthenticated: false,
         user: null,
       };
       watchlistService.setUserContext(null);
+      watchProgressService.setUserContext(null);
     }
 
     this.notifyListeners();

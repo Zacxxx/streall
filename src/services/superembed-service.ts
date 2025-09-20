@@ -15,6 +15,8 @@ export interface SuperEmbedOptions {
   useVip?: boolean;
   checkAvailability?: boolean;
   subtitle?: SuperEmbedSubtitleOptions;
+  startTimeSeconds?: number;
+  autoplay?: boolean;
 }
 
 export function normalizeImdbId(imdbId: string): string {
@@ -62,6 +64,18 @@ export function buildSuperEmbedUrl(type: SuperEmbedMediaType, options: SuperEmbe
   if (options.subtitle) {
     params.set('sub_url', options.subtitle.url);
     params.set('sub_label', options.subtitle.label);
+  }
+
+  if (options.autoplay) {
+    params.set('autoplay', '1');
+  }
+
+  if (options.startTimeSeconds && options.startTimeSeconds > 0) {
+    const resumeAt = Math.max(0, Math.floor(options.startTimeSeconds));
+    const resumeValue = resumeAt.toString();
+    params.set('start', resumeValue);
+    params.set('t', resumeValue);
+    params.set('time', resumeValue);
   }
 
   const basePath = options.useVip ? `${SUPEREMBED_BASE}directstream.php` : `${SUPEREMBED_BASE}`;

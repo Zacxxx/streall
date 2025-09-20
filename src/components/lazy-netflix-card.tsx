@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { performanceOptimizationService } from '@/services/performance-optimization-service';
 import NetflixCard from './netflix-card';
+import type { PlaybackOptions } from '@/types/playback';
 
 interface LazyNetflixCardProps {
   content: {
@@ -20,7 +21,7 @@ interface LazyNetflixCardProps {
     episodes?: number;
     tmdb_id?: number;
   };
-  onPlay: (contentId: string) => void;
+  onPlay: (contentId: string, options?: PlaybackOptions) => void;
   onAddToList?: (contentId: string) => void;
   size?: 'small' | 'medium' | 'large';
   compact?: boolean;
