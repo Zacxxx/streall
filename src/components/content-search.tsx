@@ -4,11 +4,12 @@ import { Search, Hash, Loader2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { tmdbService, type ContentItem } from '@/services/tmdb-service';
+import type { PlaybackOptions } from '@/types/playback';
 import NetflixCard from '@/components/netflix-card';
 import { useNavigate } from 'react-router-dom';
 
 interface ContentSearchProps {
-  onPlayContent?: (content: ContentItem) => void;
+  onPlayContent?: (content: ContentItem, options?: PlaybackOptions) => void;
 }
 
 export function ContentSearch({ onPlayContent }: ContentSearchProps) {
@@ -190,9 +191,9 @@ export function ContentSearch({ onPlayContent }: ContentSearchProps) {
     }
   };
 
-  const handlePlay = (content: ContentItem) => {
+  const handlePlay = (content: ContentItem, options?: PlaybackOptions) => {
     if (onPlayContent) {
-      onPlayContent(content);
+      onPlayContent(content, options);
     } else {
       navigate(`/details/${content.type}/${content.tmdb_id}`);
     }
@@ -393,7 +394,7 @@ export function ContentSearch({ onPlayContent }: ContentSearchProps) {
                     >
                       <NetflixCard
                         content={convertToCardFormat(item)}
-                        onPlay={() => handlePlay(item)}
+                        onPlay={(_contentId, options) => handlePlay(item, options)}
                         size="medium"
                       />
                     </motion.div>

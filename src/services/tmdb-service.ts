@@ -83,6 +83,7 @@ export interface EpisodeDetails {
   stillPath: string | null;
   voteAverage: number;
   streamUrl: string;
+  runtime?: number | null;
 }
 
 class TMDBService {
@@ -339,7 +340,7 @@ class TMDBService {
     type: 'movie' | 'tv',
     season?: number,
     episode?: number,
-    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle' | 'startTimeSeconds' | 'autoplay'>
   ): string {
     const trimmedId = typeof id === 'string' ? id.trim() : id;
     const isImdbId = typeof trimmedId === 'string' && trimmedId.startsWith('tt');
@@ -365,7 +366,7 @@ class TMDBService {
     type: 'movie' | 'tv',
     season?: number,
     episode?: number,
-    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle' | 'startTimeSeconds' | 'autoplay'>
   ): string {
     return this.generateSuperEmbedUrl(id, type, season, episode, extras);
   }
@@ -376,7 +377,7 @@ class TMDBService {
     type: 'movie' | 'tv',
     season?: number,
     episode?: number,
-    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle'>
+    extras?: Pick<SuperEmbedOptions, 'useVip' | 'checkAvailability' | 'subtitle' | 'startTimeSeconds' | 'autoplay'>
   ): string {
     return this.generateSuperEmbedUrl(imdbId, type, season, episode, extras);
   }
@@ -544,7 +545,8 @@ class TMDBService {
         airDate: episode.air_date,
         stillPath: episode.still_path ? `${TMDB_IMAGE_BASE_URL}w500${episode.still_path}` : null,
         voteAverage: episode.vote_average,
-        streamUrl: this.generateSuperEmbedUrl(tvId, 'tv', seasonNumber, episode.episode_number)
+        streamUrl: this.generateSuperEmbedUrl(tvId, 'tv', seasonNumber, episode.episode_number),
+        runtime: episode.runtime ?? null
       }));
       
       return {

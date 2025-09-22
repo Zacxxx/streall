@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Movie } from '@/services/geminiServices';
 import { tmdbService, type ContentItem } from '@/services/tmdb-service';
+import type { PlaybackOptions } from '@/types/playback';
 import { aiRecommendationService } from '@/services/ai-recommendation-service';
 import { smartContentMapper } from '@/services/smart-content-mapper';
 import { errorHandlingService } from '@/services/error-handling-service';
@@ -460,14 +461,36 @@ export function MovieSuggestions() {
   };
 
   // Handle play button navigation with enhanced tracking and error handling
-  const handlePlay = (contentId: string) => {
+  const handlePlay = (contentId: string, options?: PlaybackOptions) => {
     const startTime = Date.now();
     console.log('Playing content with ID:', contentId);
     
     const allContent = [...dailyContent, ...messages.flatMap(m => m.suggestions || [])];
-    
+
     // Find content by TMDB ID (contentId should be TMDB ID from NetflixCard)
     const item = allContent.find(item => item.tmdb_id.toString() === contentId);
+
+    const buildQueryString = (playback?: PlaybackOptions) => {
+      if (!playback) {
+        return '';
+      }
+
+      const params = new URLSearchParams();
+      if (playback.season) {
+        params.set('s', playback.season.toString());
+      }
+      if (playback.episode) {
+        params.set('e', playback.episode.toString());
+      }
+      if (playback.resumeAt) {
+        params.set('t', Math.floor(playback.resumeAt).toString());
+      }
+
+      return params.toString();
+    };
+
+    const queryString = buildQueryString(options);
+    const withQuery = (path: string) => (queryString ? `${path}?${queryString}` : path);
     
     // Enhanced tracking with more detailed metadata
     if (item) {
@@ -503,7 +526,7 @@ export function MovieSuggestions() {
         // Navigate to the watch page with the correct content type and ID
         // Use the same routing pattern as other components in the application
         const contentType = item.type;
-        navigate(`/watch/${contentType}/${item.tmdb_id}`);
+        navigate(withQuery(`/watch/${contentType}/${item.tmdb_id}`));
         
       } catch (error) {
         console.error('Error generating streaming URL:', error);
@@ -517,7 +540,7 @@ export function MovieSuggestions() {
         
         // Fallback to direct navigation
         const contentType = item.type;
-        navigate(`/watch/${contentType}/${item.tmdb_id}`);
+        navigate(withQuery(`/watch/${contentType}/${item.tmdb_id}`));
       }
     } else {
       console.error('Content not found for TMDB ID:', contentId);
@@ -557,7 +580,7 @@ export function MovieSuggestions() {
         }
         
         console.log(`Fallback navigation: ${contentType}/${numericId}`);
-        navigate(`/watch/${contentType}/${numericId}`);
+        navigate(withQuery(`/watch/${contentType}/${numericId}`));
         
         // Track successful fallback navigation
         trackUserInteraction('play_button', isFromDaily ? 'daily' : 'chat', contentId, contentType as 'movie' | 'tv', {
@@ -863,7 +886,7 @@ export function MovieSuggestions() {
                 >
                   <BatchContentLoader
                     content={dailyContent.map(content => convertToCardFormat(content))}
-                    onPlay={(contentId) => handlePlay(contentId)}
+                    onPlay={(contentId, options) => handlePlay(contentId, options)}
                     size="small"
                     gridCols={3}
                     batchSize={6}
@@ -1000,7 +1023,7 @@ export function MovieSuggestions() {
                               </div>
                               <BatchContentLoader
                                 content={message.suggestions.map(content => convertToCardFormat(content))}
-                                onPlay={(contentId) => handlePlay(contentId)}
+                                onPlay={(contentId, options) => handlePlay(contentId, options)}
                                 size="small"
                                 gridCols={2}
                                 batchSize={4}

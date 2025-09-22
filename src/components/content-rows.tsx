@@ -5,6 +5,7 @@ import { ChevronRight, TrendingUp, Star, Clock, Zap, ChevronLeft } from 'lucide-
 import NetflixCard from './netflix-card';
 import { NetflixCardSkeleton } from './netflix-loading';
 import { tmdbService } from '../services/tmdb-service';
+import type { PlaybackOptions } from '@/types/playback';
 
 // Content section interface
 interface ContentSection {
@@ -130,9 +131,26 @@ export function ContentRows() {
     loadAllContent();
   }, []);
 
-  const handleCardClick = (item: any) => {
-    // Use TMDB ID consistently for routing
+  const handleCardClick = (item: any, options?: PlaybackOptions) => {
     const contentId = item.tmdb_id || item.id;
+    const params = new URLSearchParams();
+
+    if (options?.season) {
+      params.set('s', options.season.toString());
+    }
+    if (options?.episode) {
+      params.set('e', options.episode.toString());
+    }
+    if (options?.resumeAt) {
+      params.set('t', Math.floor(options.resumeAt).toString());
+    }
+
+    if (params.size > 0) {
+      const query = params.toString();
+      navigate(`/watch/${item.type}/${contentId}?${query}`);
+      return;
+    }
+
     navigate(`/details/${item.type}/${contentId}`);
   };
 
@@ -292,7 +310,7 @@ export function ContentRows() {
                     >
                       <NetflixCard
                         content={item}
-                        onPlay={() => handleCardClick(item)}
+                        onPlay={(_contentId, options) => handleCardClick(item, options)}
                         size="medium"
                       />
                     </motion.div>

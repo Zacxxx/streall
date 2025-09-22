@@ -7,9 +7,10 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import NetflixCard from '@/components/netflix-card';
 import { watchlistService, type WatchlistItem } from '@/services/watchlist-service';
 import { type ContentItem } from '@/services/tmdb-service';
+import type { PlaybackOptions } from '@/types/playback';
 
 interface WatchlistViewProps {
-  onPlayContent?: (content: ContentItem) => void;
+  onPlayContent?: (content: ContentItem, options?: PlaybackOptions) => void;
 }
 
 export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
@@ -61,16 +62,17 @@ export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
     setFilteredWatchlist(filtered);
   };
 
-  const handlePlay = (item: WatchlistItem) => {
+  const handlePlay = (item: WatchlistItem, options?: PlaybackOptions) => {
+    const defaultType = item.type === 'anime' ? 'tv' : item.type;
+
     if (onPlayContent) {
-      // Convert WatchlistItem to ContentItem
       const contentItem: ContentItem = {
         id: parseInt(item.id),
         tmdb_id: parseInt(item.id),
         imdb_id: item.imdb_id,
         title: item.title,
         originalTitle: item.title,
-        type: item.type === 'anime' ? 'tv' : item.type as 'movie' | 'tv',
+        type: defaultType as 'movie' | 'tv',
         year: item.year || null,
         releaseDate: item.year ? `${item.year}-01-01` : '',
         overview: '',
@@ -86,12 +88,26 @@ export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
         episodes: null,
         status: null,
         isAdult: false,
-        streamUrl: ''
+        streamUrl: '',
       };
-      onPlayContent(contentItem);
-    } else {
-      navigate(`/watch/${item.type}/${item.imdb_id}`);
+      onPlayContent(contentItem, options);
+      return;
     }
+
+    const params = new URLSearchParams();
+    if (options?.season) {
+      params.set('s', options.season.toString());
+    }
+    if (options?.episode) {
+      params.set('e', options.episode.toString());
+    }
+    if (options?.resumeAt) {
+      params.set('t', Math.floor(options.resumeAt).toString());
+    }
+
+    const query = params.toString();
+    const basePath = `/watch/${defaultType}/${item.imdb_id}`;
+    navigate(query ? `${basePath}?${query}` : basePath);
   };
 
   const handleRemoveFromWatchlist = (tmdbId: string) => {
@@ -249,7 +265,7 @@ export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
                 >
                   <NetflixCard
                     content={convertToNetflixCardFormat(item)}
-                    onPlay={() => handlePlay(item)}
+                    onPlay={(_contentId, options) => handlePlay(item, options)}
                     onAddToList={() => handleRemoveFromWatchlist(item.imdb_id)}
                     size="medium"
                   />
@@ -273,7 +289,7 @@ export function WatchlistView({ onPlayContent }: WatchlistViewProps) {
                 >
                   <NetflixCard
                     content={convertToNetflixCardFormat(item)}
-                    onPlay={() => handlePlay(item)}
+                    onPlay={(_contentId, options) => handlePlay(item, options)}
                     onAddToList={() => handleRemoveFromWatchlist(item.imdb_id)}
                     compact={true}
                   />
